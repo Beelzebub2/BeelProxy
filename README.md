@@ -13,6 +13,8 @@
 - **Theme Customization:** Supports various themes for enhancing the visual experience.  
 - **Configuration Handling:** Utilizes a JSON configuration handler to manage user preferences.  
 - **Results Logging:** Saves results to separate files for working and failed proxies.  
+- **Capable of removing duplicates:** If the user wants to the script will remove duplicate lines from any file.  
+
 
 ## Usage:
 
