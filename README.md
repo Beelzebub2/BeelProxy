@@ -34,6 +34,7 @@ v1.0 16/08/23
 +   Multi-threaded implementation
 +   Made Ascii-art menus
 +   Json config handler
++   Corrected some spelling mistakes 
 !   Working on proxy scrapper
 
 ```
