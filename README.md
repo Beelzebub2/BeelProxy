@@ -39,6 +39,7 @@ v1.1 16/08/23
 +   Fixed minor bugs
 +   Added check all protocols
 +   Added remove duplicates option
++   Added change console title
 
 v1.0 15/08/23
 

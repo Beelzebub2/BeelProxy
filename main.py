@@ -18,6 +18,7 @@ WORKING_HTTP = "HTTP-HTTPS.txt"
 WORKING_SOCKS4 = "SOCKS4.txt"
 WORKING_SOCKS5 = "SOCKS5.txt"
 DEFAULT_WORKERS = 20
+VERSION = "v1.1"
 
 
 class JSONConfigHandler:
@@ -79,10 +80,19 @@ class ProxyChecker:
         )
         self.settings_menu = t.settings_menu(self.theme, self.theme)
         chime.theme(self.notification_theme)
+        self.set_console_title(f"BeelProxy {VERSION}")
 
     def save_to_file(self, proxy, filename):
         with open(filename, "a") as file:
             file.write(proxy + "\n")
+
+    def set_console_title(self, title):
+        system_type = os.name
+
+        if system_type == "nt":  # Windows
+            os.system("title " + title)
+        else:  # Unix-like systems
+            os.system("echo -ne '\033]0;" + title + "\007'")
 
     def remove_duplicates(self):
         input_file = input("File name.txt or File path: ")
