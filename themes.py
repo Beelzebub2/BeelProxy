@@ -1,6 +1,7 @@
 import os
+from colorama import Style
 
-from colorama import Fore, Style
+VERISON = "v1.1"
 
 
 def blackwhite(text):
@@ -88,7 +89,7 @@ def menu_theme(type1, type2):
                                                                                 
 
 
-{Style.BRIGHT}> Created by Beelzebub2
+{Style.BRIGHT}> Created by Beelzebub2 {Style.BRIGHT}- {VERISON}
 {Style.BRIGHT}> https://github.com/Beelzebub2{Style.RESET_ALL}                                                      
 """
         )
@@ -96,8 +97,8 @@ def menu_theme(type1, type2):
             """  
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 [1] HTTP / HTTPS                                | [4] Check All
-[2] SOCKS4                                      | [5] Settings
-[3] SOCKS5
+[2] SOCKS4                                      | [5] Remove duplicates
+[3] SOCKS5                                      | [6] Settings 
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────"""
         )
     )
@@ -116,7 +117,7 @@ def info_theme(type1):
                                                                                 
 
 
-{Style.BRIGHT}> Created by Beelzebub22 {Style.RESET_ALL}    
+{Style.BRIGHT}> Created by Beelzebub2 {Style.BRIGHT}- {VERISON}  
 {Style.BRIGHT}> Ctrl+c to cancel actions/exit program  {Style.RESET_ALL}                                                         
 """
     )
@@ -138,7 +139,7 @@ def theme_menu(type1, type2):
 
                                                                 
 
-{Style.BRIGHT}> Created by Beelzebub2
+{Style.BRIGHT}> Created by Beelzebub2 {Style.BRIGHT}- {VERISON}
 {Style.BRIGHT}> https://github.com/Beelzebub2{Style.RESET_ALL}                                                      
 """
         )
@@ -168,7 +169,7 @@ def settings_menu(type1, type2):
 
 
 
-{Style.BRIGHT}> Created by Beelzebub2
+{Style.BRIGHT}> Created by Beelzebub2 {Style.BRIGHT}- {VERISON}
 {Style.BRIGHT}> https://github.com/Beelzebub2{Style.RESET_ALL}                                                      
 """
         )
@@ -198,7 +199,7 @@ def notifications_menu(type1, type2, state, theme):
 
 
 
-{Style.BRIGHT}> Created by Beelzebub2
+{Style.BRIGHT}> Created by Beelzebub2 {Style.BRIGHT}- {VERISON}
 {Style.BRIGHT}> https://github.com/Beelzebub2{Style.RESET_ALL}                                                      
 """
         )
@@ -228,7 +229,7 @@ def notifications_theme_menu(type1, type2, state, theme):
 
 
 
-{Style.BRIGHT}> Created by Beelzebub2
+{Style.BRIGHT}> Created by Beelzebub2 {Style.BRIGHT}- {VERISON}
 {Style.BRIGHT}> https://github.com/Beelzebub2{Style.RESET_ALL}                                                      
 """
         )

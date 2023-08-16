@@ -20,11 +20,8 @@
 #### 2. Select Protocol  
 #### 3. Select number of workers  
 #### 4. Wait fot it to finish  
+#### 5. Output in file named after the proxy protocol
 
-
-## IMPORTANT
-
-### **working_proxies.txt** and **failed_proxies.txt** are temp files so save the proxies on another place
 
 <h3 align="left">Support:</h3>
 <p><a href="https://ko-fi.com/beelzebub_uwu"> <img align="left" src="https://cdn.ko-fi.com/cdn/kofi3.png?v=3" height="50" width="210" alt="https://ko-fi.com/account/login" /></a></p><br><br>
@@ -38,7 +35,8 @@ v1.1 16/08/23
 +   Tweaked some UI elements
 +   Added Notification control menus
 +   Fixed minor bugs
-!   Working on check all protocols
++   Added check all protocols
++   Added remove duplicates option
 
 v1.0 15/08/23
 
