@@ -289,10 +289,10 @@ class ProxyChecker:
             self.stop_event.set()
             self.main()
         except KeyboardInterrupt:
-            chime.info()
             print(
                 f"\n{Style.BRIGHT + Fore.LIGHTBLUE_EX}KeyboardInterrupt detected. Exiting gracefully.{Fore.RESET}"
             )
+            chime.info(sync=True)
             sys.exit(0)
 
 
