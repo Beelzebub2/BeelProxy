@@ -22,7 +22,7 @@
 
 ## IMPORTANT
 
-### **working_proxies.txt** and **failed_proxies.txt** are temp files so save the proxies on another place**
+### **working_proxies.txt** and **failed_proxies.txt** are temp files so save the proxies on another place
 
 # Changelog
 
