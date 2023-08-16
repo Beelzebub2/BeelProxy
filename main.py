@@ -87,7 +87,7 @@ class ProxyChecker:
 
     def internet_access(self):
         try:
-            response = requests.get("https://www.google.com", timeout=5)
+            response = requests.get("https://www.example.com", timeout=5)
             return True
         except requests.ConnectionError:
             return False
@@ -152,8 +152,9 @@ class ProxyChecker:
 
         if aws in theme_options:
             chosen_theme = theme_options[aws]
+            theme = getattr(t, chosen_theme)
             config_handler.set("Theme", chosen_theme)
-            self.load_theme(getattr(t, chosen_theme))
+            self.load_theme(theme)
         elif aws == "6":
             self.main()
         else:
@@ -172,7 +173,7 @@ class ProxyChecker:
             "6": "sonic",
             "7": "zelda",
         }
-
+        self.clear()
         print(self.notifications_theme_menu)
         aws = input("Choice: ")
 
@@ -192,6 +193,7 @@ class ProxyChecker:
             self.notifications_theme_manager()
 
     def notifications_menu_manager(self):
+        self.clear()
         print(self.notifications_menu)
         aws = input("Choice: ")
         if aws == "1":
@@ -220,7 +222,7 @@ class ProxyChecker:
             self.theme_manager()
         elif aws == "2":
             self.notifications_menu_manager()
-        elif aws == 3:
+        elif aws == "3":
             self.main()
 
     def check_http(self, proxy):
@@ -339,7 +341,6 @@ class ProxyChecker:
     def main(self):
         try:
             self.clear()
-
             with open(self.proxy_file, "r") as file:
                 self.proxy_list = file.read().splitlines()
 
@@ -381,6 +382,7 @@ class ProxyChecker:
             input()
             self.main()
         elif choice == "5":
+            self.clear()
             self.settings_menu_manager()
         else:
             print(
@@ -388,6 +390,15 @@ class ProxyChecker:
             )
             input()
             self.main()
+        self.clear()
+        print(self.info_menu)
+        print(
+            f"{Fore.LIGHTGREEN_EX}[FINISHED] {Fore.LIGHTWHITE_EX} Total proxies: {len(self.proxy_list)} {Fore.GREEN}Total Working proxies: {self.working_count} {Fore.RED}Failed proxies: {self.failed_count}{Fore.RESET}"
+        )
+        self.play_chime()
+        input(f"\n{Fore.LIGHTWHITE_EX + Style.BRIGHT}Go back to menu...")
+        self.stop_event.set()
+        self.main()
 
 
 if __name__ == "__main__":

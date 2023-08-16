@@ -1,3 +1,5 @@
 {
-    "Theme": "blackwhite"
+    "Theme": "cyan",
+    "Notifications": "ON",
+    "Notifications_theme": "material"
 }

@@ -37,6 +37,7 @@ v1.1 16/08/23
 
 +   Tweaked some UI elements
 +   Added Notification control menus
++   Fixed minor bugs
 !   Working on check all protocols
 
 v1.0 15/08/23
