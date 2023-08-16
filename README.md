@@ -1,4 +1,4 @@
-![Static Badge](https://img.shields.io/badge/Version-v1.1-8ebff1?style=for-the-badge&logo=v)
+![Static Badge](https://img.shields.io/badge/Version-v1.2-8ebff1?style=for-the-badge&logo=v)
 ![Static Badge](https://img.shields.io/badge/Language-python-3776ab?style=for-the-badge&logo=python)
 ![Static Badge](https://img.shields.io/badge/Made%20by-Ricardo%20Martins-851ebc?style=for-the-badge)
 # BeelProxy  
@@ -14,6 +14,7 @@
 - **Configuration Handling:** Utilizes a JSON configuration handler to manage user preferences.  
 - **Results Logging:** Saves results to separate files for working and failed proxies.  
 - **Capable of removing duplicates:** If the user wants to the script will remove duplicate lines from any file.  
+- **Auto-Updater**: Will check for updates on file startup and auto update them is prompt to-do so.
 
 
 ## Usage:
@@ -31,6 +32,11 @@
 # Changelog
 
 ```diff
+
+
+v1.2 16/08/23
++   Added auto-updater
+
 
 v1.1 16/08/23
 

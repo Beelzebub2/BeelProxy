@@ -10,6 +10,7 @@ import socks
 import themes as t
 import json
 import chime
+import updater as u
 
 # Constant Variables
 CONFIG_FILE = "config.json"
@@ -60,6 +61,7 @@ class ProxyChecker:
         state,
         noti_theme,
     ):
+        u.search_for_updates()
         self.proxy_file = proxy_file
         self.WORKING_HTTP = WORKING_HTTP
         self.WORKING_SOCKS4 = WORKING_SOCKS4
