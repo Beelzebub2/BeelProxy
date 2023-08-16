@@ -6,7 +6,7 @@ from colorama import Fore, Style
 import requests
 from concurrent.futures import ThreadPoolExecutor
 import socks
-import BeelProxy.themes as t
+import themes as t
 import json
 
 
