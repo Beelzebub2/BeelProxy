@@ -6,7 +6,7 @@ from colorama import Fore, Style
 import requests
 from concurrent.futures import ThreadPoolExecutor
 import socks
-import BeelProxy.themes as t
+import themes as t
 import json
 
 
@@ -143,9 +143,7 @@ class ProxyChecker:
 
     def check_socks4(self, proxy):
         proxy = proxy.split(":")
-        socks.set_default_proxy(
-            socks.SOCKS4, proxy[0], int(proxy[1])
-        )  # Change this line
+        socks.set_default_proxy(socks.SOCKS4, proxy[0], int(proxy[1]))
         socket.socket = socks.socksocket
 
         try:
@@ -165,9 +163,7 @@ class ProxyChecker:
 
     def check_socks5(self, proxy):
         proxy = proxy.split(":")
-        socks.set_default_proxy(
-            socks.SOCKS5, proxy[0], int(proxy[1])
-        )  # Change this line
+        socks.set_default_proxy(socks.SOCKS5, proxy[0], int(proxy[1]))
         socket.socket = socks.socksocket
 
         try:
@@ -186,9 +182,7 @@ class ProxyChecker:
             return False
 
     def start(self, mode):
-        with ThreadPoolExecutor(
-            max_workers=self.workers
-        ) as executor:  # Adjust max_workers as needed
+        with ThreadPoolExecutor(max_workers=self.workers) as executor:
             futures = [executor.submit(mode, proxy) for proxy in self.proxy_list]
 
             try:
