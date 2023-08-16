@@ -489,7 +489,7 @@ if __name__ == "__main__":
     THEME = theme_mapping.get(theme, t.fire)
     STATE = config_handler.get("Notifications")
     VERSION = config_handler.get("Version")
-    notifications_theme = config_handler.get("Notifications_theme")
+    NOTIFICATION_THEME = config_handler.get("Notifications_theme")
     proxy_checker = ProxyChecker(
         PROXY_FILE,
         WORKING_HTTP,
@@ -498,6 +498,6 @@ if __name__ == "__main__":
         DEFAULT_WORKERS,
         THEME,
         STATE,
-        notifications_theme,
+        NOTIFICATION_THEME,
     )
     proxy_checker.main()
