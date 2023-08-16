@@ -1,5 +1,6 @@
 {
     "Theme": "fire",
     "Notifications": "ON",
-    "Notifications_theme": "material"
+    "Notifications_theme": "material",
+    "Version": "v1.1"
 }
