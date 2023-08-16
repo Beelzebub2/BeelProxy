@@ -3,7 +3,7 @@
 ![Static Badge](https://img.shields.io/badge/Made%20by-Ricardo%20Martins-851ebc?style=for-the-badge)
 # BeelProxy  
 
-![Image](https://i.imgur.com/o0amFSa.png)  
+![Image](https://i.imgur.com/upuL5Ac.png)  
 
 ## Key Features:  
 
