@@ -115,4 +115,5 @@ def search_for_updates():
             print(t.updated(theme))
             set_console_title(f"Update Successfully Finished!")
             time.sleep(2)
+            os.system("start.bat")
             os._exit(0)
