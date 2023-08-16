@@ -37,6 +37,9 @@ v1.0 16/08/23
 +   Made Ascii-art menus
 +   Json config handler
 +   Corrected some spelling mistakes 
++   Added Sound notifications
++   Fixed bugs with socks checkers
++   Tweaked some UI elements
 !   Working on proxy scrapper
 
 ```

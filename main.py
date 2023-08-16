@@ -2,12 +2,14 @@ import os
 import socket
 import sys
 import threading
+import time
 from colorama import Fore, Style
 import requests
 from concurrent.futures import ThreadPoolExecutor
 import socks
 import themes as t
 import json
+import chime
 
 
 class JSONConfigHandler:
@@ -45,13 +47,12 @@ class ProxyChecker:
         self.working_proxies_file = working_proxies_file
         self.failed_proxies_file = failed_proxies_file
         self.workers = workers
-        self.working_count = 0
-        self.failed_count = 0
         self.count_lock = threading.Lock()
         self.theme = theme
         self.menu = t.menu_theme(self.theme, self.theme)
         self.info_menu = t.info_theme(self.theme)
         self.theme_menu = t.theme_menu(self.theme, self.theme)
+        chime.theme("material")
 
     def save_to_file(self, proxy, filename):
         with open(filename, "a") as file:
@@ -67,6 +68,16 @@ class ProxyChecker:
         except requests.ConnectionError:
             return False
 
+    def play_chime_manager(self):
+        self.stop_event = threading.Event()
+        while not self.stop_event.is_set():
+            chime.success()
+            time.sleep(3)
+
+    def play_chime(self):
+        notification = threading.Thread(target=self.play_chime_manager, daemon=True)
+        notification.start()
+
     def worker_input(self):
         try:
             workers = input(
@@ -81,6 +92,7 @@ class ProxyChecker:
 
         self.clear()
         print(self.info_menu)
+        chime.info()
         print(
             f"{Style.BRIGHT}{Fore.LIGHTGREEN_EX}[START]{Fore.LIGHTWHITE_EX} Checking {len(self.proxy_list)} proxies{Fore.RESET} {Fore.LIGHTWHITE_EX} {Style.BRIGHT}With {self.workers} workers",
             end="\r",
@@ -121,7 +133,7 @@ class ProxyChecker:
     def check_http(self, proxy):
         proxies = {
             "http": f"http://{proxy}",
-            "https": f"http://{proxy}",
+            "https": f"https://{proxy}",
         }
 
         try:
@@ -142,9 +154,14 @@ class ProxyChecker:
             return False
 
     def check_socks4(self, proxy):
-        proxy = proxy.split(":")
-        socks.set_default_proxy(socks.SOCKS4, proxy[0], int(proxy[1]))
-        socket.socket = socks.socksocket
+        try:
+            proxy = proxy.split(":")
+            socks.set_default_proxy(socks.SOCKS4, proxy[0], int(proxy[1]))
+            socket.socket = socks.socksocket
+        except ValueError:
+            with self.count_lock:
+                self.failed_count += 1
+            return False
 
         try:
             response = requests.get("http://www.example.com", timeout=10)
@@ -162,9 +179,14 @@ class ProxyChecker:
             return False
 
     def check_socks5(self, proxy):
-        proxy = proxy.split(":")
-        socks.set_default_proxy(socks.SOCKS5, proxy[0], int(proxy[1]))
-        socket.socket = socks.socksocket
+        try:
+            proxy = proxy.split(":")
+            socks.set_default_proxy(socks.SOCKS5, proxy[0], int(proxy[1]))
+            socket.socket = socks.socksocket
+        except ValueError:
+            with self.count_lock:
+                self.failed_count += 1
+            return False
 
         try:
             response = requests.get("http://www.example.com", timeout=10)
@@ -198,13 +220,14 @@ class ProxyChecker:
 
                     if i % self.workers == 0:
                         print(
-                            f"{Style.BRIGHT}{Fore.LIGHTGREEN_EX}[PROGRESS]{Fore.LIGHTCYAN_EX} Processed {self.working_count + self.failed_count} proxies - {Fore.GREEN}Working proxies: {self.working_count} {Fore.RED}Failed proxies: {self.failed_count}",
+                            f"{Style.BRIGHT}{Fore.LIGHTGREEN_EX}[PROGRESS]{Fore.LIGHTCYAN_EX} Processed {round(self.working_count + self.failed_count / len(self.proxy_list), 2)}% of proxies - {Fore.GREEN}Working proxies: {self.working_count} {Fore.RED}Failed proxies: {self.failed_count}",
                             end="\r",
                             flush=True,
                         )
             except KeyboardInterrupt:
                 for future in futures:
                     future.cancel()
+                chime.info()
                 print(
                     f"\n\n{Style.BRIGHT + Fore.LIGHTBLUE_EX}KeyboardInterrupt detected. Exiting gracefully.{Fore.RESET}"
                 )
@@ -214,15 +237,20 @@ class ProxyChecker:
     def main(self):
         try:
             self.clear()
+
             with open(self.proxy_file, "r") as file:
                 self.proxy_list = file.read().splitlines()
+
+            self.working_count = 0
+            self.failed_count = 0
             internet_access = self.internet_access()
             if not internet_access:
                 self.clear()
+                chime.error()
                 print(self.info_menu)
-                print(f"{Style.BRIGHT}{Fore.RED}[ERROR] You need internet access")
-                input()
+                input(f"{Style.BRIGHT}{Fore.RED}[ERROR] You need internet access")
                 return
+
             print(self.menu)
             aws = input("Choice: ")
             self.clear()
@@ -254,11 +282,14 @@ class ProxyChecker:
             self.clear()
             print(self.info_menu)
             print(
-                f"{Fore.LIGHTGREEN_EX}[FINISHED] {Fore.GREEN}Total Working proxies: {self.working_count} {Fore.RED}Failed proxies: {self.failed_count}{Fore.RESET}"
+                f"{Fore.LIGHTGREEN_EX}[FINISHED] {Fore.LIGHTWHITE_EX} Total proxies: {len(self.proxy_list)} {Fore.GREEN}Total Working proxies: {self.working_count} {Fore.RED}Failed proxies: {self.failed_count}{Fore.RESET}"
             )
+            self.play_chime()
             input(f"\n{Fore.LIGHTWHITE_EX + Style.BRIGHT}Go back to menu...")
+            self.stop_event.set()
             self.main()
         except KeyboardInterrupt:
+            chime.info()
             print(
                 f"\n{Style.BRIGHT + Fore.LIGHTBLUE_EX}KeyboardInterrupt detected. Exiting gracefully.{Fore.RESET}"
             )
