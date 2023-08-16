@@ -1,4 +1,4 @@
-![Static Badge](https://img.shields.io/badge/Version-v1.0-8ebff1?style=for-the-badge&logo=v)
+![Static Badge](https://img.shields.io/badge/Version-v1.1-8ebff1?style=for-the-badge&logo=v)
 ![Static Badge](https://img.shields.io/badge/Language-python-3776ab?style=for-the-badge&logo=python)
 ![Static Badge](https://img.shields.io/badge/Made%20by-Ricardo%20Martins-851ebc?style=for-the-badge)
 # BeelProxy  
@@ -30,7 +30,13 @@
 
 ```diff
 
-v1.0 16/08/23
+v1.1 16/08/23
+
++   Tweaked some UI elements
++   Added Notification control menus
+!   Working on check all protocols
+
+v1.0 15/08/23
 
 +   Made themes
 +   Multi-threaded implementation
@@ -39,7 +45,6 @@ v1.0 16/08/23
 +   Corrected some spelling mistakes 
 +   Added Sound notifications
 +   Fixed bugs with socks checkers
-+   Tweaked some UI elements
 !   Working on proxy scrapper
 
 ```

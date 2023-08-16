@@ -6,10 +6,18 @@ import time
 from colorama import Fore, Style
 import requests
 from concurrent.futures import ThreadPoolExecutor
+import multiprocessing as mp
 import socks
 import themes as t
 import json
 import chime
+
+# Constant Variables
+CONFIG_FILE = "config.json"
+PROXY_FILE = "proxy_list.txt"
+WORKING_PROXIES_FILE = "working_proxies.txt"
+FAILED_PROXIES_FILE = "failed_proxies.txt"
+DEFAULT_WORKERS = 50
 
 
 class JSONConfigHandler:
@@ -41,7 +49,14 @@ class JSONConfigHandler:
 
 class ProxyChecker:
     def __init__(
-        self, proxy_file, working_proxies_file, failed_proxies_file, workers, theme
+        self,
+        proxy_file,
+        working_proxies_file,
+        failed_proxies_file,
+        workers,
+        theme,
+        state,
+        noti_theme,
     ):
         self.proxy_file = proxy_file
         self.working_proxies_file = working_proxies_file
@@ -49,10 +64,19 @@ class ProxyChecker:
         self.workers = workers
         self.count_lock = threading.Lock()
         self.theme = theme
+        self.state = state
+        self.notification_theme = noti_theme
         self.menu = t.menu_theme(self.theme, self.theme)
         self.info_menu = t.info_theme(self.theme)
         self.theme_menu = t.theme_menu(self.theme, self.theme)
-        chime.theme("material")
+        self.notifications_menu = t.notifications_menu(
+            self.theme, self.theme, self.state, self.notification_theme
+        )
+        self.notifications_theme_menu = t.notifications_theme_menu(
+            self.theme, self.theme, self.state, self.notification_theme
+        )
+        self.settings_menu = t.settings_menu(self.theme, self.theme)
+        chime.theme(self.notification_theme)
 
     def save_to_file(self, proxy, filename):
         with open(filename, "a") as file:
@@ -69,6 +93,8 @@ class ProxyChecker:
             return False
 
     def play_chime_manager(self):
+        if self.state == "OFF":
+            return
         self.stop_event = threading.Event()
         while not self.stop_event.is_set():
             chime.success()
@@ -92,7 +118,8 @@ class ProxyChecker:
 
         self.clear()
         print(self.info_menu)
-        chime.info()
+        if self.state == "ON":
+            chime.info()
         print(
             f"{Style.BRIGHT}{Fore.LIGHTGREEN_EX}[START]{Fore.LIGHTWHITE_EX} Checking {len(self.proxy_list)} proxies{Fore.RESET} {Fore.LIGHTWHITE_EX} {Style.BRIGHT}With {self.workers} workers",
             end="\r",
@@ -102,26 +129,31 @@ class ProxyChecker:
         self.menu = t.menu_theme(theme, theme)
         self.info_menu = t.info_theme(theme)
         self.theme_menu = t.theme_menu(theme, theme)
+        self.notifications_menu = t.notifications_menu(
+            theme, theme, self.state, self.notification_theme
+        )
+        self.notifications_theme_menu = t.notifications_theme_menu(
+            theme, theme, self.state, self.notification_theme
+        )
+        self.settings_menu = t.settings_menu(theme, theme)
 
     def theme_manager(self):
+        theme_options = {
+            "1": "cyan",
+            "2": "fire",
+            "3": "blackwhite",
+            "4": "purple",
+            "5": "water",
+        }
+
         self.clear()
         print(self.theme_menu)
         aws = input("Choice: ")
-        if aws == "1":
-            config_handler.set("Theme", "cyan")
-            self.load_theme(t.cyan)
-        elif aws == "2":
-            config_handler.set("Theme", "fire")
-            self.load_theme(t.fire)
-        elif aws == "3":
-            config_handler.set("Theme", "blackwhite")
-            self.load_theme(t.blackwhite)
-        elif aws == "4":
-            config_handler.set("Theme", "purple")
-            self.load_theme(t.purple)
-        elif aws == "5":
-            config_handler.set("Theme", "water")
-            self.load_theme(t.water)
+
+        if aws in theme_options:
+            chosen_theme = theme_options[aws]
+            config_handler.set("Theme", chosen_theme)
+            self.load_theme(getattr(t, chosen_theme))
         elif aws == "6":
             self.main()
         else:
@@ -129,6 +161,67 @@ class ProxyChecker:
             input()
             self.theme_manager()
         self.main()
+
+    def notifications_theme_manager(self):
+        theme_options = {
+            "1": "big-sur",
+            "2": "chime",
+            "3": "mario",
+            "4": "material",
+            "5": "pokemon",
+            "6": "sonic",
+            "7": "zelda",
+        }
+
+        print(self.notifications_theme_menu)
+        aws = input("Choice: ")
+
+        if aws in theme_options:
+            chosen_theme = theme_options[aws]
+            chime.theme(chosen_theme)
+            self.notification_theme = chosen_theme
+            config_handler.set("Notifications_theme", chosen_theme)
+            self.load_theme(self.theme)
+            self.clear()
+            self.notifications_theme_manager()
+        elif aws == "8":
+            self.main()
+        else:
+            print(f'{Style.BRIGHT} {Fore.LIGHTRED_EX}"{aws}" Is not a valid option...')
+            input()
+            self.notifications_theme_manager()
+
+    def notifications_menu_manager(self):
+        print(self.notifications_menu)
+        aws = input("Choice: ")
+        if aws == "1":
+            self.notifications_theme_manager()
+        if aws == "2":
+            if self.state == "ON":
+                self.state = "OFF"
+                config_handler.set("Notifications", "OFF")
+                self.load_theme(self.theme)
+                self.clear()
+                self.notifications_menu_manager()
+            else:
+                self.state = "ON"
+                config_handler.set("Notifications", "ON")
+                self.load_theme(self.theme)
+                self.clear()
+                self.notifications_menu_manager()
+
+        if aws == "3":
+            self.main()
+
+    def settings_menu_manager(self):
+        print(self.settings_menu)
+        aws = input("Choice: ")
+        if aws == "1":
+            self.theme_manager()
+        elif aws == "2":
+            self.notifications_menu_manager()
+        elif aws == 3:
+            self.main()
 
     def check_http(self, proxy):
         proxies = {
@@ -203,6 +296,14 @@ class ProxyChecker:
                 self.failed_count += 1
             return False
 
+    def check_all(self, proxy):
+        http = mp.Process(target=self.check_http, args=(proxy,))
+        socks4 = mp.Process(target=self.check_socks4, args=(proxy,))
+        socks5 = mp.Process(target=self.check_socks5, args=(proxy,))
+        http.start()
+        socks4.start()
+        socks5.start()
+
     def start(self, mode):
         with ThreadPoolExecutor(max_workers=self.workers) as executor:
             futures = [executor.submit(mode, proxy) for proxy in self.proxy_list]
@@ -227,7 +328,8 @@ class ProxyChecker:
             except KeyboardInterrupt:
                 for future in futures:
                     future.cancel()
-                chime.info()
+                if self.state == "ON":
+                    chime.info()
                 print(
                     f"\n\n{Style.BRIGHT + Fore.LIGHTBLUE_EX}KeyboardInterrupt detected. Exiting gracefully.{Fore.RESET}"
                 )
@@ -246,59 +348,50 @@ class ProxyChecker:
             internet_access = self.internet_access()
             if not internet_access:
                 self.clear()
-                chime.error()
+                if self.state == "ON":
+                    chime.error()
                 print(self.info_menu)
                 input(f"{Style.BRIGHT}{Fore.RED}[ERROR] You need internet access")
                 return
 
             print(self.menu)
             aws = input("Choice: ")
-            self.clear()
-            print(self.info_menu)
+            self.handle_menu_choice(aws)
 
-            if os.path.exists(self.working_proxies_file):
-                os.remove(self.working_proxies_file)
-            if os.path.exists(self.failed_proxies_file):
-                os.remove(self.failed_proxies_file)
-
-            if aws == "1":
-                self.worker_input()
-                self.start(self.check_http)
-            elif aws == "2":
-                self.worker_input()
-                self.start(self.check_socks4)
-            elif aws == "3":
-                self.worker_input()
-                self.start(self.check_socks5)
-            elif aws == "4":
-                self.theme_manager()
-            else:
-                print(
-                    f'{Style.BRIGHT} {Fore.LIGHTRED_EX}"{aws}" Is not a valid option...'
-                )
-                input()
-                self.main()
-
-            self.clear()
-            print(self.info_menu)
-            print(
-                f"{Fore.LIGHTGREEN_EX}[FINISHED] {Fore.LIGHTWHITE_EX} Total proxies: {len(self.proxy_list)} {Fore.GREEN}Total Working proxies: {self.working_count} {Fore.RED}Failed proxies: {self.failed_count}{Fore.RESET}"
-            )
-            self.play_chime()
-            input(f"\n{Fore.LIGHTWHITE_EX + Style.BRIGHT}Go back to menu...")
-            self.stop_event.set()
-            self.main()
         except KeyboardInterrupt:
             print(
                 f"\n{Style.BRIGHT + Fore.LIGHTBLUE_EX}KeyboardInterrupt detected. Exiting gracefully.{Fore.RESET}"
             )
-            chime.info(sync=True)
+            if self.state == "ON":
+                chime.info(sync=True)
             sys.exit(0)
+
+    def handle_menu_choice(self, choice):
+        if choice == "1":
+            self.worker_input()
+            self.start(self.check_http)
+        elif choice == "2":
+            self.worker_input()
+            self.start(self.check_socks4)
+        elif choice == "3":
+            self.worker_input()
+            self.start(self.check_socks5)
+        elif choice == "4":
+            print("Under development...")
+            input()
+            self.main()
+        elif choice == "5":
+            self.settings_menu_manager()
+        else:
+            print(
+                f'{Style.BRIGHT} {Fore.LIGHTRED_EX}"{choice}" Is not a valid option...'
+            )
+            input()
+            self.main()
 
 
 if __name__ == "__main__":
-    config_file = "config.json"
-    config_handler = JSONConfigHandler(config_file)
+    config_handler = JSONConfigHandler(CONFIG_FILE)
     theme = config_handler.get("Theme")
     theme_mapping = {
         "fire": t.fire,
@@ -307,12 +400,16 @@ if __name__ == "__main__":
         "blackwhite": t.blackwhite,
         "water": t.water,
     }
-    if theme in theme_mapping:
-        theme = theme_mapping[theme]
-    else:
-        theme = t.fire
-
+    theme = theme_mapping.get(theme, t.fire)
+    state = config_handler.get("Notifications")
+    notifications_theme = config_handler.get("Notifications_theme")
     proxy_checker = ProxyChecker(
-        "proxy_list.txt", "working_proxies.txt", "failed_proxies.txt", 50, theme
+        PROXY_FILE,
+        WORKING_PROXIES_FILE,
+        FAILED_PROXIES_FILE,
+        DEFAULT_WORKERS,
+        theme,
+        state,
+        notifications_theme,
     )
     proxy_checker.main()
