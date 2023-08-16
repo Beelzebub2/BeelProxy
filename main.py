@@ -19,7 +19,6 @@ WORKING_HTTP = "HTTP-HTTPS.txt"
 WORKING_SOCKS4 = "SOCKS4.txt"
 WORKING_SOCKS5 = "SOCKS5.txt"
 DEFAULT_WORKERS = 20
-VERSION = "v1.2"
 
 
 class JSONConfigHandler:
@@ -487,8 +486,9 @@ if __name__ == "__main__":
         "blackwhite": t.blackwhite,
         "water": t.water,
     }
-    theme = theme_mapping.get(theme, t.fire)
-    state = config_handler.get("Notifications")
+    THEME = theme_mapping.get(theme, t.fire)
+    STATE = config_handler.get("Notifications")
+    VERSION = config_handler.get("Version")
     notifications_theme = config_handler.get("Notifications_theme")
     proxy_checker = ProxyChecker(
         PROXY_FILE,
@@ -496,8 +496,8 @@ if __name__ == "__main__":
         WORKING_SOCKS4,
         WORKING_SOCKS5,
         DEFAULT_WORKERS,
-        theme,
-        state,
+        THEME,
+        STATE,
         notifications_theme,
     )
     proxy_checker.main()
