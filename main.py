@@ -4,12 +4,14 @@ import socket
 import threading
 import time
 import json
-from concurrent.futures import ThreadPoolExecutor
-
 import requests
 import socks
+from concurrent.futures import ThreadPoolExecutor
+
+
 from colorama import Fore, Style
 import chime
+from tqdm import tqdm
 
 import utilities.updater as u
 import utilities.themes as t
@@ -110,27 +112,43 @@ class ProxyChecker:
                 lines = inputf.readlines()
 
             with open(file_path, "w") as output:
-                for line in lines:
-                    if line not in lines_seen:
-                        output.write(line)
-                        lines_seen.add(line)
-                    else:
-                        total_duplicates_removed += 1
+                if default:
+                    lines_iterator = tqdm(
+                        enumerate(lines),
+                        total=len(lines),
+                        desc=f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{Fore.LIGHTMAGENTA_EX + self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET}{Fore.LIGHTWHITE_EX}{Style.BRIGHT}Cleaning: {file_path}",
+                        unit=" lines",
+                        bar_format="{desc}: {percentage:3.0f}% |{bar}| {n_fmt}/{total_fmt} [{elapsed}, {rate_fmt}{postfix}]",
+                        ncols=100,
+                        ascii=True,
+                        colour="GREEN",
+                    )
+                    for idx, line in lines_iterator:
+                        if line not in lines_seen:
+                            output.write(line)
+                            lines_seen.add(line)
+                        else:
+                            total_duplicates_removed += 1
+                else:
+                    for line in lines:
+                        if line not in lines_seen:
+                            output.write(line)
+                            lines_seen.add(line)
+                        else:
+                            total_duplicates_removed += 1
 
             end_time = time.time()
             elapsed_time = end_time - start_time
 
-            if self.state == "ON":
-                self.play_chime()
-
             timestamp = self.get_timestamp()
             if not default:
+                if self.state == "ON":
+                    self.play_chime()
                 print(
                     f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{Fore.LIGHTMAGENTA_EX + timestamp + Fore.LIGHTBLUE_EX}]{Fore.RESET} "
                     f"{Fore.LIGHTGREEN_EX + Style.BRIGHT}[FINISHED] {Fore.LIGHTWHITE_EX}Removed {total_duplicates_removed} duplicate lines from {file_path} in {elapsed_time:.2f} seconds."
                 )
                 input("Go back to menu...")
-
                 if self.state == "ON":
                     self.stop_event.set()
             else:
@@ -159,7 +177,9 @@ class ProxyChecker:
                 remove_duplicates_from_file(default_file, True)
             if self.state == "ON":
                 self.play_chime()
-            print("\n".join(self.duplicate_stats))
+            self.clear()
+            print(self.info_menu)
+            print("\n" + "\n".join(self.duplicate_stats))
             input("Go back to menu...")
             if self.state == "ON":
                 self.stop_event.set()

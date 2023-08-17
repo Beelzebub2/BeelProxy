@@ -2,3 +2,4 @@ colorama==0.4.4
 requests==2.26.0
 socks==0.0.26
 chime==0.7.0
+tqdm==4.66.1

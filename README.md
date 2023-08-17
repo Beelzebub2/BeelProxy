@@ -1,4 +1,4 @@
-![Static Badge](https://img.shields.io/badge/Version-v1.3-8ebff1?style=for-the-badge&logo=v)
+![Static Badge](https://img.shields.io/badge/Version-v1.4-8ebff1?style=for-the-badge&logo=v)
 ![Static Badge](https://img.shields.io/badge/Language-python-3776ab?style=for-the-badge&logo=python)
 ![Static Badge](https://img.shields.io/badge/Made%20by-Ricardo%20Martins-851ebc?style=for-the-badge)
 # BeelProxy  
@@ -39,6 +39,13 @@
 ```diff
 
 
+v1.4 17/08/23
+
++   Improved check all performance
++   Fixed internet error after socks proxy check
++   Added option to remove duplicate lines from default ouput files and default proxy list
++   Added progress bar to remove duplicates function
+
 v1.3 17/08/23
 
 +   Optimized some functions
@@ -48,9 +55,6 @@ v1.3 17/08/23
 +   Added proxy scrapper
 +   Modified remove duplicate function
 +   Moved scrapper, themes and updater to a folder
-+   Improved check all performance
-+   Fixed internet error after socks proxy check
-+   Added option to remove duplicate lines from default ouput files and default proxy list
 
 
 v1.2 16/08/23
