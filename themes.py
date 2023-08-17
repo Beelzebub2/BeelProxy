@@ -1,7 +1,37 @@
+import json
 import os
 from colorama import Style
 
-VERISON = "v1.1"
+
+class JSONConfigHandler:
+    def __init__(self, config_file_path):
+        self.config_file_path = config_file_path
+        self.config = self.load_config()
+
+    def load_config(self):
+        if os.path.exists(self.config_file_path):
+            with open(self.config_file_path, "r") as file:
+                try:
+                    config = json.load(file)
+                    return config
+                except json.JSONDecodeError:
+                    print("Error: Invalid JSON format in the config file.")
+        return {}
+
+    def get(self, key, default=None):
+        return self.config.get(key, default)
+
+    def set(self, key, value):
+        self.config[key] = value
+        self.save_config()
+
+    def save_config(self):
+        with open(self.config_file_path, "w") as file:
+            json.dump(self.config, file, indent=4)
+
+
+config_handler = JSONConfigHandler("config.json")
+VERSION = config_handler.get("Version")
 
 
 def blackwhite(text):
@@ -89,7 +119,7 @@ def menu_theme(type1, type2):
                                                                                 
 
 
-{Style.BRIGHT}> Created by Beelzebub2 {Style.BRIGHT}- {VERISON}
+{Style.BRIGHT}> Created by Beelzebub2 {Style.BRIGHT}- {VERSION}
 {Style.BRIGHT}> https://github.com/Beelzebub2{Style.RESET_ALL}                                                      
 """
         )
@@ -117,7 +147,7 @@ def info_theme(type1):
                                                                                 
 
 
-{Style.BRIGHT}> Created by Beelzebub2 {Style.BRIGHT}- {VERISON}  
+{Style.BRIGHT}> Created by Beelzebub2 {Style.BRIGHT}- {VERSION}  
 {Style.BRIGHT}> Ctrl+c to cancel actions/exit program  {Style.RESET_ALL}                                                         
 """
     )
@@ -139,7 +169,7 @@ def theme_menu(type1, type2):
 
                                                                 
 
-{Style.BRIGHT}> Created by Beelzebub2 {Style.BRIGHT}- {VERISON}
+{Style.BRIGHT}> Created by Beelzebub2 {Style.BRIGHT}- {VERSION}
 {Style.BRIGHT}> https://github.com/Beelzebub2{Style.RESET_ALL}                                                      
 """
         )
@@ -169,7 +199,7 @@ def settings_menu(type1, type2):
 
 
 
-{Style.BRIGHT}> Created by Beelzebub2 {Style.BRIGHT}- {VERISON}
+{Style.BRIGHT}> Created by Beelzebub2 {Style.BRIGHT}- {VERSION}
 {Style.BRIGHT}> https://github.com/Beelzebub2{Style.RESET_ALL}                                                      
 """
         )
@@ -199,7 +229,7 @@ def notifications_menu(type1, type2, state, theme):
 
 
 
-{Style.BRIGHT}> Created by Beelzebub2 {Style.BRIGHT}- {VERISON}
+{Style.BRIGHT}> Created by Beelzebub2 {Style.BRIGHT}- {VERSION}
 {Style.BRIGHT}> https://github.com/Beelzebub2{Style.RESET_ALL}                                                      
 """
         )
@@ -229,7 +259,7 @@ def notifications_theme_menu(type1, type2, state, theme):
 
 
 
-{Style.BRIGHT}> Created by Beelzebub2 {Style.BRIGHT}- {VERISON}
+{Style.BRIGHT}> Created by Beelzebub2 {Style.BRIGHT}- {VERSION}
 {Style.BRIGHT}> https://github.com/Beelzebub2{Style.RESET_ALL}                                                      
 """
         )

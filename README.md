@@ -37,6 +37,7 @@
 v1.2 16/08/23
 +   Added auto-updater
 +   Fixed Script not starting automatically after update
++   Fixed Version discrepancy on menus
 
 
 v1.1 16/08/23
