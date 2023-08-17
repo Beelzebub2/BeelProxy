@@ -40,15 +40,20 @@
 
 
 v1.3 17/08/23
+
 +   Optimized some functions
 +   Organized imports
 +   Added timestamps
 +   Changed show progress functionality
 +   Added proxy scrapper
 +   Modified remove duplicate function
-+   moved scrapper, themes and updater to a folder
++   Moved scrapper, themes and updater to a folder
++   Improved check all performance
++   Fixed internet error after socks proxy check
+
 
 v1.2 16/08/23
+
 +   Added auto-updater
 +   Fixed Script not starting automatically after update
 +   Fixed Version discrepancy on menus
@@ -68,7 +73,7 @@ v1.0 15/08/23
 +   Made themes
 +   Multi-threaded implementation
 +   Made Ascii-art menus
-+   Json config handler
++   Added Json config handler
 +   Corrected some spelling mistakes 
 +   Added Sound notifications
 +   Fixed bugs with socks checkers

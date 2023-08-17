@@ -150,10 +150,23 @@ class ProxyChecker:
 
     def internet_access(self):
         try:
+            try:
+                socks.set_default_proxy()
+                socket.socket = socket.socket
+            except:
+                pass
             response = requests.get("https://www.google.com", timeout=10)
             return True
-        except requests.ConnectionError or requests.exceptions.ReadTimeout:
-            return False
+        except (requests.ConnectionError, requests.exceptions.ReadTimeout):
+            try:
+                response = requests.get("https://www.example.com", timeout=10)
+                return True
+            except (
+                requests.ConnectTimeout,
+                requests.exceptions.ReadTimeout,
+                requests.ConnectionError,
+            ):
+                return False
 
     def play_chime_manager(self):
         if self.state == "OFF":
@@ -170,7 +183,7 @@ class ProxyChecker:
     def worker_input(self):
         try:
             workers = input(
-                f"{Style.BRIGHT}{Fore.LIGHTCYAN_EX}[INFO]{Fore.RESET} {Fore.LIGHTWHITE_EX}How many workers do you want? (try 100 - 1000) default: {DEFAULT_WORKERS}\n"
+                f"{Style.BRIGHT}{Fore.LIGHTCYAN_EX}[INFO]{Fore.RESET} {Fore.LIGHTWHITE_EX}How many workers do you want? (try 100 - 1000) default: {DEFAULT_WORKERS}. {Style.BRIGHT + Fore.LIGHTYELLOW_EX}In check all function workers will be 3 times this\n"
             )
             if workers:
                 self.workers = int(workers)
@@ -339,7 +352,7 @@ class ProxyChecker:
             socket.socket = socks.socksocket
         except ValueError:
             with self.count_lock:
-                self.failed_count += 1
+                self.socks4_failed_count += 1
             return False
 
         try:
@@ -350,11 +363,11 @@ class ProxyChecker:
                 return True
             else:
                 with self.count_lock:
-                    self.failed_count += 1
+                    self.socks4_failed_count += 1
                 return False
         except requests.RequestException:
             with self.count_lock:
-                self.failed_count += 1
+                self.socks4_failed_count += 1
             return False
 
     def check_socks5(self, proxy):
@@ -364,7 +377,7 @@ class ProxyChecker:
             socket.socket = socks.socksocket
         except ValueError:
             with self.count_lock:
-                self.failed_count += 1
+                self.socks5_failed_count += 1
             return False
 
         try:
@@ -375,53 +388,34 @@ class ProxyChecker:
                 return True
             else:
                 with self.count_lock:
-                    self.failed_count += 1
+                    self.socks5_failed_count += 1
                 return False
         except requests.RequestException:
             with self.count_lock:
-                self.failed_count += 1
+                self.socks5_failed_count += 1
             return False
 
     def check_all(self):
         self.worker_input()
-        checks = [
-            (self.check_http, "HTTP/HTTPS"),
-            (self.check_socks4, "Socks4"),
-            (self.check_socks5, "Socks5"),
-        ]
-
+        with ThreadPoolExecutor(3) as executor:
+            executor.submit(self.start, self.check_http)
+            executor.submit(self.start, self.check_socks4)
+            executor.submit(self.start, self.check_socks5)
         self.clear()
         print(self.info_menu)
         if self.state == "ON":
-            chime.info()
-        print(
-            f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} {Style.BRIGHT}{Fore.LIGHTGREEN_EX}[START]{Fore.LIGHTWHITE_EX} Checking all proxies with all protocols{Fore.RESET}{Fore.LIGHTWHITE_EX} {Style.BRIGHT}With {self.workers} workers",
-            end="\r",
-        )
-
-        for check_func, protocol in checks:
-            self.start(check_func)
-            self.clear()
-            print(self.info_menu)
-
-        if self.state == "ON":
             self.play_chime()
-
         print(
             f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} {Fore.LIGHTGREEN_EX + Style.BRIGHT}[FINISHED]{Fore.LIGHTWHITE_EX} Working proxies -{Fore.LIGHTCYAN_EX + Style.BRIGHT} HTTP/HTTPS: {self.working_count}{Fore.LIGHTBLUE_EX + Style.BRIGHT} Socks4: {self.socks4_working_count} {Fore.LIGHTMAGENTA_EX + Style.BRIGHT}Socks5: {self.socks5_working_count}{Fore.RESET}"
         )
-
         input("Go back to menu...")
-
         if self.state == "ON":
             self.stop_event.set()
-
         self.main()
 
     def start(self, mode):
         with ThreadPoolExecutor(max_workers=self.workers) as executor:
             futures = [executor.submit(mode, proxy) for proxy in self.proxy_list]
-            self.failed_count = 0
             try:
                 last_progress_time = time.time()
                 for i, (proxy, future) in enumerate(
@@ -441,18 +435,40 @@ class ProxyChecker:
                     if current_time - last_progress_time >= SHOW_PROGRESS:
                         last_progress_time = current_time
                         progress_mode_mapping = {
-                            self.check_http: (self.working_count, "HTTP/HTTPS"),
-                            self.check_socks4: (self.socks4_working_count, "SOCKS4"),
-                            self.check_socks5: (self.socks5_working_count, "SOCKS5"),
+                            self.check_http: (
+                                self.working_count,
+                                "HTTP/HTTPS",
+                                self.failed_count,
+                            ),
+                            self.check_socks4: (
+                                self.socks4_working_count,
+                                "SOCKS4",
+                                self.socks4_failed_count,
+                            ),
+                            self.check_socks5: (
+                                self.socks5_working_count,
+                                "SOCKS5",
+                                self.socks5_failed_count,
+                            ),
                         }
                         (
                             self.working_proxies,
                             Current_protocol,
+                            Current_failed,
                         ) = progress_mode_mapping.get(mode, self.working_count)
+                        progress_message = (
+                            f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} "
+                            f"{Fore.LIGHTGREEN_EX + Style.BRIGHT}[PROGRESS]{Fore.LIGHTWHITE_EX + Style.BRIGHT} Protocol: {Current_protocol}"
+                            f"{Fore.LIGHTCYAN_EX} Processed {round(i / len(self.proxy_list) * 100, 2)}% of proxies - "
+                            f"{Fore.GREEN}Working proxies: {self.working_proxies} {Fore.RED}Failed proxies: {Current_failed}"
+                        )
 
                         print(
-                            f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} {Fore.LIGHTGREEN_EX + Style.BRIGHT}[PROGRESS]{Fore.LIGHTWHITE_EX + Style.BRIGHT} Protocol: {Current_protocol}{Fore.LIGHTCYAN_EX} Processed {round(i / len(self.proxy_list) * 100, 2)}% of proxies - {Fore.GREEN}Working proxies: {self.working_proxies} {Fore.RED}Failed proxies: {self.failed_count}",
-                            end="\r",
+                            "\r"
+                            + " " * len(progress_message)
+                            + "\r"
+                            + progress_message,
+                            end="",
                             flush=True,
                         )
 
@@ -477,13 +493,18 @@ class ProxyChecker:
             self.failed_count = 0
             self.socks4_working_count = 0
             self.socks5_working_count = 0
+            self.socks4_failed_count = 0
+            self.socks5_failed_count = 0
             internet_access = self.internet_access()
             if not internet_access:
                 self.clear()
                 if self.state == "ON":
                     chime.error()
                 print(self.info_menu)
-                input(f"{Style.BRIGHT}{Fore.RED}[ERROR] You need internet access")
+                input(
+                    f"{Style.BRIGHT}{Fore.RED}[ERROR] You need internet access or a better network connection"
+                )
+                self.main()
                 return
 
             print(self.menu)
