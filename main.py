@@ -22,8 +22,8 @@ PROXY_FILE = "proxy_list.txt"
 WORKING_HTTP = "HTTP-HTTPS.txt"
 WORKING_SOCKS4 = "SOCKS4.txt"
 WORKING_SOCKS5 = "SOCKS5.txt"
-DEFAULT_WORKERS = 100
-SHOW_PROGRESS = 5  # time between each progress update (not precise)
+DEFAULT_WORKERS = 100  # find the best number for your cpu
+SHOW_PROGRESS = 5  # time (seconds) between each progress update (not precise)
 
 
 class JSONConfigHandler:
