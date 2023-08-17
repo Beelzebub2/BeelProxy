@@ -1,4 +1,4 @@
-![Static Badge](https://img.shields.io/badge/Version-v1.2-8ebff1?style=for-the-badge&logo=v)
+![Static Badge](https://img.shields.io/badge/Version-v1.3-8ebff1?style=for-the-badge&logo=v)
 ![Static Badge](https://img.shields.io/badge/Language-python-3776ab?style=for-the-badge&logo=python)
 ![Static Badge](https://img.shields.io/badge/Made%20by-Ricardo%20Martins-851ebc?style=for-the-badge)
 # BeelProxy  
@@ -25,6 +25,10 @@
 #### 4. Wait fot it to finish  
 #### 5. Output in file named after the proxy protocol
 
+## Notes
+- **Worker quantity**: On a **6 core** Intel Core i7-8750H 2.20GHz i was able to use 1000. However 5000 was to much for it. I recommend you to try different numbers and see whats the best option.  
+
+
 
 <h3 align="left">Support:</h3>
 <p><a href="https://ko-fi.com/beelzebub_uwu"> <img align="left" src="https://cdn.ko-fi.com/cdn/kofi3.png?v=3" height="50" width="210" alt="https://ko-fi.com/account/login" /></a></p><br><br>
@@ -33,6 +37,15 @@
 
 ```diff
 
+
+v1.3 17/08/23
++   Optimized some functions
++   Organized imports
++   Added timestamps
++   Changed show progress functionality
++   Added proxy scrapper
++   Modified remove duplicate function
++   moved scrapper, themes and updater to a folder
 
 v1.2 16/08/23
 +   Added auto-updater

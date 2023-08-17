@@ -6,37 +6,9 @@ import os
 import shutil
 from zipfile import ZipFile
 from colorama import Fore, Style
-import themes as t
+import utilities.themes as t
 
-
-class JSONConfigHandler:
-    def __init__(self, config_file_path):
-        self.config_file_path = config_file_path
-        self.config = self.load_config()
-
-    def load_config(self):
-        if os.path.exists(self.config_file_path):
-            with open(self.config_file_path, "r") as file:
-                try:
-                    config = json.load(file)
-                    return config
-                except json.JSONDecodeError:
-                    print("Error: Invalid JSON format in the config file.")
-        return {}
-
-    def get(self, key, default=None):
-        return self.config.get(key, default)
-
-    def set(self, key, value):
-        self.config[key] = value
-        self.save_config()
-
-    def save_config(self):
-        with open(self.config_file_path, "w") as file:
-            json.dump(self.config, file, indent=4)
-
-
-config_handler = JSONConfigHandler("config.json")
+config_handler = t.JSONConfigHandler("config.json")
 repository_owner = "Beelzebub2"
 repository_name = "BeelProxy"
 file_path = "config.json"

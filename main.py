@@ -1,16 +1,20 @@
 import os
-import socket
 import sys
+import socket
 import threading
 import time
-from colorama import Fore, Style
-import requests
-from concurrent.futures import ThreadPoolExecutor
-import socks
-import themes as t
 import json
+from concurrent.futures import ThreadPoolExecutor
+
+import requests
+import socks
+from colorama import Fore, Style
 import chime
-import updater as u
+
+import utilities.updater as u
+import utilities.themes as t
+import utilities.scrapper as s
+
 
 # Constant Variables
 CONFIG_FILE = "config.json"
@@ -18,7 +22,8 @@ PROXY_FILE = "proxy_list.txt"
 WORKING_HTTP = "HTTP-HTTPS.txt"
 WORKING_SOCKS4 = "SOCKS4.txt"
 WORKING_SOCKS5 = "SOCKS5.txt"
-DEFAULT_WORKERS = 20
+DEFAULT_WORKERS = 100
+SHOW_PROGRESS = 5  # time between each progress update (not precise)
 
 
 class JSONConfigHandler:
@@ -99,9 +104,15 @@ class ProxyChecker:
         input_file = input("File name.txt or File path: ")
         if not os.path.isfile(input_file):
             if self.state == "ON":
-                chime.error()
+                self.play_chime(error=True)
             print(f"{Fore.LIGHTRED_EX + Style.BRIGHT}[ERROR] File not found")
+            input("Go back to menu...")
+            return
+
+        start_time = time.time()
         lines_seen = set()
+        total_duplicates_removed = 0
+
         with open(input_file, "r") as inputf:
             lines = inputf.readlines()
 
@@ -110,18 +121,32 @@ class ProxyChecker:
                 if line not in lines_seen:
                     output.write(line)
                     lines_seen.add(line)
+                else:
+                    total_duplicates_removed += 1
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+
         if self.state == "ON":
             self.play_chime()
+
+        timestamp = self.get_timestamp()
         print(
-            f"{Fore.LIGHTGREEN_EX + Style.BRIGHT}[FINISHED] {Fore.LIGHTWHITE_EX}Removed all duplicate lines from file"
+            f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{Fore.LIGHTMAGENTA_EX + timestamp + Fore.LIGHTBLUE_EX}]{Fore.RESET} {Fore.LIGHTGREEN_EX + Style.BRIGHT}[FINISHED] {Fore.LIGHTWHITE_EX}Removed {total_duplicates_removed} duplicate lines from file in {elapsed_time:.2f} seconds."
         )
         input("Go back to menu...")
+
         if self.state == "ON":
             self.stop_event.set()
         self.main()
 
     def clear(self):
         os.system("clear" if os.name == "posix" else "cls")
+
+    def get_timestamp(self):
+        current_time = time.localtime()
+        timestamp = time.strftime("%H:%M:%S", current_time)
+        return timestamp
 
     def internet_access(self):
         try:
@@ -145,21 +170,21 @@ class ProxyChecker:
     def worker_input(self):
         try:
             workers = input(
-                f"{Style.BRIGHT}{Fore.LIGHTCYAN_EX}[INFO]{Fore.RESET} {Fore.LIGHTWHITE_EX}How many workers do you want? (recommended 20 - 50) default: 20\n"
+                f"{Style.BRIGHT}{Fore.LIGHTCYAN_EX}[INFO]{Fore.RESET} {Fore.LIGHTWHITE_EX}How many workers do you want? (try 100 - 1000) default: {DEFAULT_WORKERS}\n"
             )
             if workers:
                 self.workers = int(workers)
             else:
-                self.workers = 20
+                self.workers = DEFAULT_WORKERS
         except ValueError:
-            self.workers = 20
+            self.workers = DEFAULT_WORKERS
 
         self.clear()
         print(self.info_menu)
         if self.state == "ON":
             chime.info()
         print(
-            f"{Style.BRIGHT}{Fore.LIGHTGREEN_EX}[START]{Fore.LIGHTWHITE_EX} Checking {len(self.proxy_list)} proxies{Fore.RESET} {Fore.LIGHTWHITE_EX} {Style.BRIGHT}With {self.workers} workers",
+            f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} {Style.BRIGHT}{Fore.LIGHTGREEN_EX}[START]{Fore.LIGHTWHITE_EX} Checking {len(self.proxy_list)} proxies{Fore.RESET} {Fore.LIGHTWHITE_EX} {Style.BRIGHT}With {self.workers} workers",
             end="\r",
         )
 
@@ -186,7 +211,7 @@ class ProxyChecker:
 
         self.clear()
         print(self.theme_menu)
-        aws = input("Choice: ")
+        aws = input(f"{Fore.GREEN}[{Fore.CYAN}>>>{Fore.GREEN}] {Fore.RESET}Choice: ")
 
         if aws in theme_options:
             chosen_theme = theme_options[aws]
@@ -213,7 +238,7 @@ class ProxyChecker:
         }
         self.clear()
         print(self.notifications_theme_menu)
-        aws = input("Choice: ")
+        aws = input(f"{Fore.GREEN}[{Fore.CYAN}>>>{Fore.GREEN}] {Fore.RESET}Choice: ")
 
         if aws in theme_options:
             chosen_theme = theme_options[aws]
@@ -231,37 +256,58 @@ class ProxyChecker:
             self.notifications_theme_manager()
 
     def notifications_menu_manager(self):
+        notifications_menu_options = {
+            "1": self.notifications_theme_manager,
+            "2": self.toggle_notifications,
+            "3": self.main,
+        }
+
         self.clear()
         print(self.notifications_menu)
-        aws = input("Choice: ")
-        if aws == "1":
-            self.notifications_theme_manager()
-        if aws == "2":
-            if self.state == "ON":
-                self.state = "OFF"
-                config_handler.set("Notifications", "OFF")
-                self.load_theme(self.theme)
-                self.clear()
-                self.notifications_menu_manager()
-                return
+        aws = input(f"{Fore.GREEN}[{Fore.CYAN}>>>{Fore.GREEN}] {Fore.RESET}Choice: ")
+
+        selected_action = notifications_menu_options.get(aws)
+
+        if selected_action:
+            selected_action()
+        else:
+            print(f'{Style.BRIGHT} {Fore.LIGHTRED_EX}"{aws}" Is not a valid option...')
+            input()
+
+        self.main()
+
+    def toggle_notifications(self):
+        if self.state == "ON":
+            self.state = "OFF"
+            config_handler.set("Notifications", "OFF")
+        else:
             self.state = "ON"
             config_handler.set("Notifications", "ON")
-            self.load_theme(self.theme)
-            self.clear()
-            self.notifications_menu_manager()
 
-        if aws == "3":
-            self.main()
+        self.load_theme(self.theme)
+        self.clear()
+        self.notifications_menu_manager()
 
     def settings_menu_manager(self):
+        settings_menu_options = {
+            "1": self.theme_manager,
+            "2": self.notifications_menu_manager,
+            "3": self.main,
+        }
+
         print(self.settings_menu)
-        aws = input("Choice: ")
-        if aws == "1":
-            self.theme_manager()
-        elif aws == "2":
-            self.notifications_menu_manager()
-        elif aws == "3":
-            self.main()
+        aws = input(f"{Fore.GREEN}[{Fore.CYAN}>>>{Fore.GREEN}] {Fore.RESET}Choice: ")
+
+        selected_action = settings_menu_options.get(aws)
+
+        if selected_action:
+            selected_action()
+        else:
+            print(f'{Style.BRIGHT} {Fore.LIGHTRED_EX}"{aws}" Is not a valid option...')
+            input()
+            self.settings_menu_manager()
+
+        self.main()
 
     def check_http(self, proxy):
         proxies = {
@@ -338,31 +384,38 @@ class ProxyChecker:
 
     def check_all(self):
         self.worker_input()
+        checks = [
+            (self.check_http, "HTTP/HTTPS"),
+            (self.check_socks4, "Socks4"),
+            (self.check_socks5, "Socks5"),
+        ]
+
         self.clear()
         print(self.info_menu)
         if self.state == "ON":
             chime.info()
         print(
-            f"{Style.BRIGHT}{Fore.LIGHTGREEN_EX}[START]{Fore.LIGHTWHITE_EX} Checking all proxies with all protocols{Fore.RESET}{Fore.LIGHTWHITE_EX} {Style.BRIGHT}With {self.workers} workers",
+            f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} {Style.BRIGHT}{Fore.LIGHTGREEN_EX}[START]{Fore.LIGHTWHITE_EX} Checking all proxies with all protocols{Fore.RESET}{Fore.LIGHTWHITE_EX} {Style.BRIGHT}With {self.workers} workers",
             end="\r",
         )
-        self.start(self.check_http)
-        self.clear()
-        print(self.info_menu)
-        self.start(self.check_socks4)
-        self.clear()
-        print(self.info_menu)
-        self.start(self.check_socks5)
-        self.clear()
-        print(self.info_menu)
+
+        for check_func, protocol in checks:
+            self.start(check_func)
+            self.clear()
+            print(self.info_menu)
+
         if self.state == "ON":
             self.play_chime()
+
         print(
-            f"{Fore.LIGHTGREEN_EX + Style.BRIGHT}[FINISHED]{Fore.LIGHTWHITE_EX} Working proxies -{Fore.LIGHTCYAN_EX + Style.BRIGHT} HTTP/HTTPS: {self.working_count}{Fore.LIGHTBLUE_EX + Style.BRIGHT} Socks4: {self.socks4_working_count} {Fore.LIGHTMAGENTA_EX + Style.BRIGHT}Socks5: {self.socks5_working_count}{Fore.RESET}"
+            f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} {Fore.LIGHTGREEN_EX + Style.BRIGHT}[FINISHED]{Fore.LIGHTWHITE_EX} Working proxies -{Fore.LIGHTCYAN_EX + Style.BRIGHT} HTTP/HTTPS: {self.working_count}{Fore.LIGHTBLUE_EX + Style.BRIGHT} Socks4: {self.socks4_working_count} {Fore.LIGHTMAGENTA_EX + Style.BRIGHT}Socks5: {self.socks5_working_count}{Fore.RESET}"
         )
+
         input("Go back to menu...")
+
         if self.state == "ON":
             self.stop_event.set()
+
         self.main()
 
     def start(self, mode):
@@ -370,6 +423,7 @@ class ProxyChecker:
             futures = [executor.submit(mode, proxy) for proxy in self.proxy_list]
             self.failed_count = 0
             try:
+                last_progress_time = time.time()
                 for i, (proxy, future) in enumerate(
                     zip(self.proxy_list, futures), start=1
                 ):
@@ -382,8 +436,10 @@ class ProxyChecker:
                             self.save_to_file(proxy, self.WORKING_SOCKS4)
                         elif mode == self.check_socks5:
                             self.save_to_file(proxy, self.WORKING_SOCKS5)
+                    current_time = time.time()
 
-                    if i % self.workers == 0:
+                    if current_time - last_progress_time >= SHOW_PROGRESS:
+                        last_progress_time = current_time
                         progress_mode_mapping = {
                             self.check_http: (self.working_count, "HTTP/HTTPS"),
                             self.check_socks4: (self.socks4_working_count, "SOCKS4"),
@@ -395,7 +451,7 @@ class ProxyChecker:
                         ) = progress_mode_mapping.get(mode, self.working_count)
 
                         print(
-                            f"{Style.BRIGHT}{Fore.LIGHTGREEN_EX}[PROGRESS]{Fore.LIGHTWHITE_EX + Style.BRIGHT} Protocol: {Current_protocol}{Fore.LIGHTCYAN_EX} Processed {round(i / len(self.proxy_list) * 100, 2)}% of proxies - {Fore.GREEN}Working proxies: {self.working_proxies} {Fore.RED}Failed proxies: {self.failed_count}",
+                            f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} {Fore.LIGHTGREEN_EX + Style.BRIGHT}[PROGRESS]{Fore.LIGHTWHITE_EX + Style.BRIGHT} Protocol: {Current_protocol}{Fore.LIGHTCYAN_EX} Processed {round(i / len(self.proxy_list) * 100, 2)}% of proxies - {Fore.GREEN}Working proxies: {self.working_proxies} {Fore.RED}Failed proxies: {self.failed_count}",
                             end="\r",
                             flush=True,
                         )
@@ -406,7 +462,7 @@ class ProxyChecker:
                 if self.state == "ON":
                     chime.info()
                 print(
-                    f"\n\n{Style.BRIGHT + Fore.LIGHTBLUE_EX}KeyboardInterrupt detected. Exiting gracefully.{Fore.RESET}"
+                    f"\n\n{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} {Style.BRIGHT + Fore.LIGHTBLUE_EX}KeyboardInterrupt detected. Exiting gracefully.{Fore.RESET}"
                 )
                 input(f"\n{Fore.LIGHTWHITE_EX + Style.BRIGHT}Go back to menu...")
                 self.main()
@@ -431,44 +487,46 @@ class ProxyChecker:
                 return
 
             print(self.menu)
-            aws = input("Choice: ")
+            aws = input(
+                f"{Fore.GREEN}[{Fore.CYAN}>>>{Fore.GREEN}] {Fore.RESET}Choice: "
+            )
             self.handle_menu_choice(aws)
 
         except KeyboardInterrupt:
             print(
-                f"\n{Style.BRIGHT + Fore.LIGHTBLUE_EX}KeyboardInterrupt detected. Exiting gracefully.{Fore.RESET}"
+                f"\n{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} {Style.BRIGHT + Fore.LIGHTBLUE_EX}KeyboardInterrupt detected. Exiting gracefully.{Fore.RESET}"
             )
             if self.state == "ON":
                 chime.info(sync=True)
             sys.exit(0)
 
     def handle_menu_choice(self, choice):
-        if choice == "1":
-            self.worker_input()
-            self.start(self.check_http)
-        elif choice == "2":
-            self.worker_input()
-            self.start(self.check_socks4)
-        elif choice == "3":
-            self.worker_input()
-            self.start(self.check_socks5)
-        elif choice == "4":
-            self.check_all()
-        elif choice == "5":
-            self.remove_duplicates()
-        elif choice == "6":
-            self.clear()
-            self.settings_menu_manager()
+        menu_actions = {
+            "1": (self.worker_input, lambda: self.start(self.check_http)),
+            "2": (self.worker_input, lambda: self.start(self.check_socks4)),
+            "3": (self.worker_input, lambda: self.start(self.check_socks5)),
+            "4": (self.check_all,),
+            "5": (self.remove_duplicates, self.main),
+            "6": (s.proxy_scrape, self.main),
+            "7": (self.clear, self.settings_menu_manager),
+        }
+
+        action = menu_actions.get(choice)
+
+        if action:
+            for func in action:
+                func()
         else:
             print(
                 f'{Style.BRIGHT} {Fore.LIGHTRED_EX}"{choice}" Is not a valid option...'
             )
             input()
             self.main()
+
         self.clear()
         print(self.info_menu)
         print(
-            f"{Fore.LIGHTGREEN_EX}[FINISHED] {Fore.LIGHTWHITE_EX} Total proxies: {len(self.proxy_list)} {Fore.GREEN}Total Working proxies: { self.working_proxies} {Fore.RED}Failed proxies: {self.failed_count}{Fore.RESET}"
+            f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} {Fore.LIGHTGREEN_EX}[FINISHED] {Fore.LIGHTWHITE_EX} Total proxies: {len(self.proxy_list)} {Fore.GREEN}Total Working proxies: { self.working_proxies} {Fore.RED}Failed proxies: {self.failed_count}{Fore.RESET}"
         )
         self.play_chime()
         input(f"\n{Fore.LIGHTWHITE_EX + Style.BRIGHT}Go back to menu...")
