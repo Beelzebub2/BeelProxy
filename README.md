@@ -50,6 +50,7 @@ v1.3 17/08/23
 +   Moved scrapper, themes and updater to a folder
 +   Improved check all performance
 +   Fixed internet error after socks proxy check
++   Added option to remove duplicate lines from default ouput files and default proxy list
 
 
 v1.2 16/08/23

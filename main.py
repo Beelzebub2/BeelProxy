@@ -101,43 +101,69 @@ class ProxyChecker:
             os.system("echo -ne '\033]0;" + title + "\007'")
 
     def remove_duplicates(self):
-        input_file = input("File name.txt or File path: ")
-        if not os.path.isfile(input_file):
+        def remove_duplicates_from_file(file_path, default=False):
+            start_time = time.time()
+            lines_seen = set()
+            total_duplicates_removed = 0
+
+            with open(file_path, "r") as inputf:
+                lines = inputf.readlines()
+
+            with open(file_path, "w") as output:
+                for line in lines:
+                    if line not in lines_seen:
+                        output.write(line)
+                        lines_seen.add(line)
+                    else:
+                        total_duplicates_removed += 1
+
+            end_time = time.time()
+            elapsed_time = end_time - start_time
+
+            if self.state == "ON":
+                self.play_chime()
+
+            timestamp = self.get_timestamp()
+            if not default:
+                print(
+                    f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{Fore.LIGHTMAGENTA_EX + timestamp + Fore.LIGHTBLUE_EX}]{Fore.RESET} "
+                    f"{Fore.LIGHTGREEN_EX + Style.BRIGHT}[FINISHED] {Fore.LIGHTWHITE_EX}Removed {total_duplicates_removed} duplicate lines from {file_path} in {elapsed_time:.2f} seconds."
+                )
+                input("Go back to menu...")
+
+                if self.state == "ON":
+                    self.stop_event.set()
+            else:
+                self.duplicate_stats.append(
+                    f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{Fore.LIGHTMAGENTA_EX + timestamp + Fore.LIGHTBLUE_EX}]{Fore.RESET} "
+                    f"{Fore.LIGHTGREEN_EX + Style.BRIGHT}[FINISHED] {Fore.LIGHTWHITE_EX}Removed {total_duplicates_removed} duplicate lines from {file_path} in {elapsed_time:.2f} seconds."
+                )
+
+        default_files = [WORKING_HTTP, WORKING_SOCKS4, WORKING_SOCKS5, PROXY_FILE]
+
+        input_file = input(
+            f"File name.txt or File path {Fore.BLUE}[{Fore.LIGHTMAGENTA_EX}For output files cleanup click enter{Fore.BLUE}]: "
+        )
+
+        if input_file and not os.path.isfile(input_file):
             if self.state == "ON":
                 self.play_chime(error=True)
             print(f"{Fore.LIGHTRED_EX + Style.BRIGHT}[ERROR] File not found")
             input("Go back to menu...")
             return
 
-        start_time = time.time()
-        lines_seen = set()
-        total_duplicates_removed = 0
+        if input_file:
+            remove_duplicates_from_file(input_file)
+        else:
+            for default_file in default_files:
+                remove_duplicates_from_file(default_file, True)
+            if self.state == "ON":
+                self.play_chime()
+            print("\n".join(self.duplicate_stats))
+            input("Go back to menu...")
+            if self.state == "ON":
+                self.stop_event.set()
 
-        with open(input_file, "r") as inputf:
-            lines = inputf.readlines()
-
-        with open(input_file, "w") as output:
-            for line in lines:
-                if line not in lines_seen:
-                    output.write(line)
-                    lines_seen.add(line)
-                else:
-                    total_duplicates_removed += 1
-
-        end_time = time.time()
-        elapsed_time = end_time - start_time
-
-        if self.state == "ON":
-            self.play_chime()
-
-        timestamp = self.get_timestamp()
-        print(
-            f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{Fore.LIGHTMAGENTA_EX + timestamp + Fore.LIGHTBLUE_EX}]{Fore.RESET} {Fore.LIGHTGREEN_EX + Style.BRIGHT}[FINISHED] {Fore.LIGHTWHITE_EX}Removed {total_duplicates_removed} duplicate lines from file in {elapsed_time:.2f} seconds."
-        )
-        input("Go back to menu...")
-
-        if self.state == "ON":
-            self.stop_event.set()
         self.main()
 
     def clear(self):
@@ -495,6 +521,7 @@ class ProxyChecker:
             self.socks5_working_count = 0
             self.socks4_failed_count = 0
             self.socks5_failed_count = 0
+            self.duplicate_stats = []
             internet_access = self.internet_access()
             if not internet_access:
                 self.clear()
