@@ -14,7 +14,7 @@
 - **Configuration Handling:** Utilizes a JSON configuration handler to manage user preferences.  
 - **Results Logging:** Saves results to separate files for working and failed proxies.  
 - **Capable of removing duplicates:** If the user wants to the script will remove duplicate lines from any file.  
-- **Auto-Updater**: Will check for updates on file startup and auto update them is prompt to-do so.
+- **Auto-Updater**: Will check for updates on file startup and auto update them if prompt to-do so.
 
 
 ## Usage:
