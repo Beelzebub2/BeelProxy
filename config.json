@@ -3,5 +3,5 @@
     "Notifications": "ON",
     "Notifications_theme": "material",
     "Version": "v1.4",
-    "Workers": "100"
+    "Workers": 100
 }

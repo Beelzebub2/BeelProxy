@@ -48,6 +48,8 @@ v1.4 17/08/23
 +   Added current theme display
 +   Added change workers default, to settings
 +   Added new theme
++   Fixed progress bar width by reading console total width
++   Improved number representations
 
 
 v1.3 17/08/23

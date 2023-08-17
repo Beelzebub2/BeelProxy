@@ -1,5 +1,6 @@
 import os
 import sys
+import shutil
 import socket
 import threading
 import time
@@ -117,8 +118,9 @@ class ProxyChecker:
                         desc=f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{Fore.LIGHTMAGENTA_EX + self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET}{Fore.LIGHTWHITE_EX}{Style.BRIGHT}Cleaning: {file_path}",
                         unit=" lines",
                         bar_format="{desc}: {percentage:3.0f}% |{bar}| {n_fmt}/{total_fmt} [{elapsed}, {rate_fmt}{postfix}]",
-                        ncols=100,
+                        ncols=round(self.console_width * 0.9),
                         ascii=True,
+                        smoothing=0.1,
                         colour="GREEN",
                     )
                     for idx, line in lines_iterator:
@@ -144,7 +146,7 @@ class ProxyChecker:
                     self.play_chime()
                 print(
                     f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{Fore.LIGHTMAGENTA_EX + timestamp + Fore.LIGHTBLUE_EX}]{Fore.RESET} "
-                    f"{Fore.LIGHTGREEN_EX + Style.BRIGHT}[FINISHED] {Fore.LIGHTWHITE_EX}Removed {total_duplicates_removed} duplicate lines from {file_path} in {elapsed_time:.2f} seconds."
+                    f"{Fore.LIGHTGREEN_EX + Style.BRIGHT}[FINISHED] {Fore.LIGHTWHITE_EX}Removed {total_duplicates_removed:,} duplicate lines from {file_path} in {elapsed_time:.2f} seconds."
                 )
                 input("Go back to menu...")
                 if self.state == "ON":
@@ -152,7 +154,7 @@ class ProxyChecker:
             else:
                 self.duplicate_stats.append(
                     f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{Fore.LIGHTMAGENTA_EX + timestamp + Fore.LIGHTBLUE_EX}]{Fore.RESET} "
-                    f"{Fore.LIGHTGREEN_EX + Style.BRIGHT}[FINISHED] {Fore.LIGHTWHITE_EX}Removed {total_duplicates_removed} duplicate lines from {file_path} in {elapsed_time:.2f} seconds."
+                    f"{Fore.LIGHTGREEN_EX + Style.BRIGHT}[FINISHED] {Fore.LIGHTWHITE_EX}Removed {total_duplicates_removed:,} duplicate lines from {file_path} in {elapsed_time:.2f} seconds."
                 )
 
         default_files = [WORKING_HTTP, WORKING_SOCKS4, WORKING_SOCKS5, PROXY_FILE]
@@ -228,10 +230,11 @@ class ProxyChecker:
         if settings:
             try:
                 workers = input(
-                    f"{Style.BRIGHT}{Fore.LIGHTCYAN_EX}[INFO]{Fore.RESET} {Fore.LIGHTWHITE_EX}New workers default? Current: {DEFAULT_WORKERS}. {Style.BRIGHT + Fore.LIGHTYELLOW_EX}In [check all] function workers will be 3 times this\n"
+                    f"{Style.BRIGHT}{Fore.LIGHTCYAN_EX}[INFO]{Fore.RESET} {Fore.LIGHTWHITE_EX}New workers default? Current: {self.workers}. {Style.BRIGHT + Fore.LIGHTYELLOW_EX}In [check all] function workers will be 3 times this\n"
                 )
                 if workers:
-                    config_handler.set("Workers", workers)
+                    config_handler.set("Workers", int(workers))
+                    self.workers = int(workers)
                 else:
                     if self.state == "ON":
                         chime.error()
@@ -245,21 +248,21 @@ class ProxyChecker:
             return
         try:
             workers = input(
-                f"{Style.BRIGHT}{Fore.LIGHTCYAN_EX}[INFO]{Fore.RESET} {Fore.LIGHTWHITE_EX}How many workers do you want? (try 100 - 1000) default: {DEFAULT_WORKERS}. {Style.BRIGHT + Fore.LIGHTYELLOW_EX}In [check all] function workers will be 3 times this\n"
+                f"{Style.BRIGHT}{Fore.LIGHTCYAN_EX}[INFO]{Fore.RESET} {Fore.LIGHTWHITE_EX}How many workers do you want? (try 100 - 1000) default: {self.workers}. {Style.BRIGHT + Fore.LIGHTYELLOW_EX}In [check all] function workers will be 3 times this\n"
             )
             if workers:
                 self.workers = int(workers)
             else:
-                self.workers = DEFAULT_WORKERS
+                self.workers = self.workers
         except ValueError:
-            self.workers = DEFAULT_WORKERS
+            self.workers = self.workers
 
         self.clear()
         print(self.info_menu)
         if self.state == "ON":
             chime.info()
         print(
-            f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} {Style.BRIGHT}{Fore.LIGHTGREEN_EX}[START]{Fore.LIGHTWHITE_EX} Checking {len(self.proxy_list)} proxies{Fore.RESET} {Fore.LIGHTWHITE_EX} {Style.BRIGHT}With {self.workers} workers",
+            f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} {Style.BRIGHT}{Fore.LIGHTGREEN_EX}[START]{Fore.LIGHTWHITE_EX} Checking {len(self.proxy_list):,} proxies{Fore.RESET} {Fore.LIGHTWHITE_EX} {Style.BRIGHT}With {self.workers:,} workers",
             end="\r",
         )
 
@@ -458,16 +461,19 @@ class ProxyChecker:
 
     def check_all(self):
         self.worker_input()
+        start_time = time.time()
         with ThreadPoolExecutor(3) as executor:
             executor.submit(self.start, self.check_http)
             executor.submit(self.start, self.check_socks4)
             executor.submit(self.start, self.check_socks5)
+        end_time = time.time()
         self.clear()
         print(self.info_menu)
         if self.state == "ON":
             self.play_chime()
+        elapsed_time = end_time - start_time
         print(
-            f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} {Fore.LIGHTGREEN_EX + Style.BRIGHT}[FINISHED]{Fore.LIGHTWHITE_EX} Working proxies -{Fore.LIGHTCYAN_EX + Style.BRIGHT} HTTP/HTTPS: {self.working_count}{Fore.LIGHTBLUE_EX + Style.BRIGHT} Socks4: {self.socks4_working_count} {Fore.LIGHTMAGENTA_EX + Style.BRIGHT}Socks5: {self.socks5_working_count}{Fore.RESET}"
+            f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} {Fore.LIGHTGREEN_EX + Style.BRIGHT}[FINISHED]{Fore.LIGHTWHITE_EX} Working proxies -{Fore.LIGHTCYAN_EX + Style.BRIGHT} HTTP/HTTPS: {self.working_count:,}{Fore.LIGHTBLUE_EX + Style.BRIGHT} Socks4: {self.socks4_working_count:,} {Fore.LIGHTMAGENTA_EX + Style.BRIGHT}Socks5: {self.socks5_working_count:,}{Fore.RESET} in {elapsed_time:.2f} seconds"
         )
         input("Go back to menu...")
         if self.state == "ON":
@@ -521,15 +527,12 @@ class ProxyChecker:
                             f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} "
                             f"{Fore.LIGHTGREEN_EX + Style.BRIGHT}[PROGRESS]{Fore.LIGHTWHITE_EX + Style.BRIGHT} Protocol: {Current_protocol}"
                             f"{Fore.LIGHTCYAN_EX} Processed {round(i / len(self.proxy_list) * 100, 2)}% of proxies - "
-                            f"{Fore.GREEN}Working proxies: {self.working_proxies} {Fore.RED}Failed proxies: {Current_failed}"
+                            f"{Fore.GREEN}Working proxies: {self.working_proxies:,} {Fore.RED}Failed proxies: {Current_failed:,}"
                         )
-
+                        print(" " * self.console_width, end="\r")
                         print(
-                            "\r"
-                            + " " * len(progress_message)
-                            + "\r"
-                            + progress_message,
-                            end="",
+                            progress_message,
+                            end="\r",
                             flush=True,
                         )
 
@@ -541,15 +544,16 @@ class ProxyChecker:
                 print(
                     f"\n\n{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} {Style.BRIGHT + Fore.LIGHTBLUE_EX}KeyboardInterrupt detected. Exiting gracefully.{Fore.RESET}"
                 )
-                input(f"\n{Fore.LIGHTWHITE_EX + Style.BRIGHT}Go back to menu...")
-                self.main()
+                sys.exit()
+
+    def read_proxy_file(self):
+        with open(self.proxy_file, "r") as file:
+            self.proxy_list = file.read().splitlines()
 
     def main(self):
         try:
             self.clear()
-            with open(self.proxy_file, "r") as file:
-                self.proxy_list = file.read().splitlines()
-
+            self.read_proxy_file()
             self.working_count = 0
             self.failed_count = 0
             self.socks4_working_count = 0
@@ -557,6 +561,7 @@ class ProxyChecker:
             self.socks4_failed_count = 0
             self.socks5_failed_count = 0
             self.duplicate_stats = []
+            self.console_width = shutil.get_terminal_size().columns
             internet_access = self.internet_access()
             if not internet_access:
                 self.clear()
@@ -585,10 +590,22 @@ class ProxyChecker:
 
     def handle_menu_choice(self, choice):
         menu_actions = {
-            "1": (self.worker_input, lambda: self.start(self.check_http)),
-            "2": (self.worker_input, lambda: self.start(self.check_socks4)),
-            "3": (self.worker_input, lambda: self.start(self.check_socks5)),
-            "4": (self.check_all,),
+            "1": (
+                self.worker_input,
+                self.read_proxy_file,
+                lambda: self.start(self.check_http),
+            ),
+            "2": (
+                self.worker_input,
+                self.read_proxy_file,
+                lambda: self.start(self.check_socks4),
+            ),
+            "3": (
+                self.worker_input,
+                self.read_proxy_file,
+                lambda: self.start(self.check_socks5),
+            ),
+            "4": (self.check_all, self.read_proxy_file),
             "5": (self.remove_duplicates, self.main),
             "6": (s.proxy_scrape, self.main),
             "7": (self.clear, self.settings_menu_manager),
@@ -609,7 +626,7 @@ class ProxyChecker:
         self.clear()
         print(self.info_menu)
         print(
-            f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} {Fore.LIGHTGREEN_EX}[FINISHED] {Fore.LIGHTWHITE_EX} Total proxies: {len(self.proxy_list)} {Fore.GREEN}Total Working proxies: { self.working_proxies} {Fore.RED}Failed proxies: {self.failed_count}{Fore.RESET}"
+            f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} {Fore.LIGHTGREEN_EX}[FINISHED] {Fore.LIGHTWHITE_EX} Total proxies: {len(self.proxy_list):,} {Fore.GREEN}Total Working proxies: { self.working_proxies:,} {Fore.RED}Failed proxies: {self.failed_count:,}{Fore.RESET}"
         )
         self.play_chime()
         input(f"\n{Fore.LIGHTWHITE_EX + Style.BRIGHT}Go back to menu...")
