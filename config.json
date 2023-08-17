@@ -1,6 +1,7 @@
 {
-    "Theme": "fire",
+    "Theme": "pinkneon",
     "Notifications": "ON",
     "Notifications_theme": "material",
-    "Version": "v1.4"
+    "Version": "v1.4",
+    "Workers": "100"
 }

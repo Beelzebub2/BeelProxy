@@ -6,6 +6,7 @@ import time
 import json
 import requests
 import socks
+import importlib
 from concurrent.futures import ThreadPoolExecutor
 
 
@@ -24,7 +25,6 @@ PROXY_FILE = "proxy_list.txt"
 WORKING_HTTP = "HTTP-HTTPS.txt"
 WORKING_SOCKS4 = "SOCKS4.txt"
 WORKING_SOCKS5 = "SOCKS5.txt"
-DEFAULT_WORKERS = 100  # find the best number for your cpu
 SHOW_PROGRESS = 5  # time (seconds) between each progress update (not precise)
 
 
@@ -80,11 +80,9 @@ class ProxyChecker:
         self.menu = t.menu_theme(self.theme, self.theme)
         self.info_menu = t.info_theme(self.theme)
         self.theme_menu = t.theme_menu(self.theme, self.theme)
-        self.notifications_menu = t.notifications_menu(
-            self.theme, self.theme, self.state, self.notification_theme
-        )
+        self.notifications_menu = t.notifications_menu(self.theme, self.theme)
         self.notifications_theme_menu = t.notifications_theme_menu(
-            self.theme, self.theme, self.state, self.notification_theme
+            self.theme, self.theme
         )
         self.settings_menu = t.settings_menu(self.theme, self.theme)
         chime.theme(self.notification_theme)
@@ -226,10 +224,28 @@ class ProxyChecker:
         notification = threading.Thread(target=self.play_chime_manager, daemon=True)
         notification.start()
 
-    def worker_input(self):
+    def worker_input(self, settings=None):
+        if settings:
+            try:
+                workers = input(
+                    f"{Style.BRIGHT}{Fore.LIGHTCYAN_EX}[INFO]{Fore.RESET} {Fore.LIGHTWHITE_EX}New workers default? Current: {DEFAULT_WORKERS}. {Style.BRIGHT + Fore.LIGHTYELLOW_EX}In [check all] function workers will be 3 times this\n"
+                )
+                if workers:
+                    config_handler.set("Workers", workers)
+                else:
+                    if self.state == "ON":
+                        chime.error()
+                    input(f"{Fore.RED + Style.BRIGHT}[ERROR] invalid input...")
+                    self.worker_input(True)
+            except ValueError:
+                if self.state == "ON":
+                    chime.error()
+                input(f"{Fore.RED + Style.BRIGHT}[ERROR] invalid input...")
+                self.worker_input(True)
+            return
         try:
             workers = input(
-                f"{Style.BRIGHT}{Fore.LIGHTCYAN_EX}[INFO]{Fore.RESET} {Fore.LIGHTWHITE_EX}How many workers do you want? (try 100 - 1000) default: {DEFAULT_WORKERS}. {Style.BRIGHT + Fore.LIGHTYELLOW_EX}In check all function workers will be 3 times this\n"
+                f"{Style.BRIGHT}{Fore.LIGHTCYAN_EX}[INFO]{Fore.RESET} {Fore.LIGHTWHITE_EX}How many workers do you want? (try 100 - 1000) default: {DEFAULT_WORKERS}. {Style.BRIGHT + Fore.LIGHTYELLOW_EX}In [check all] function workers will be 3 times this\n"
             )
             if workers:
                 self.workers = int(workers)
@@ -248,15 +264,12 @@ class ProxyChecker:
         )
 
     def load_theme(self, theme):
+        importlib.reload(t)
         self.menu = t.menu_theme(theme, theme)
         self.info_menu = t.info_theme(theme)
         self.theme_menu = t.theme_menu(theme, theme)
-        self.notifications_menu = t.notifications_menu(
-            theme, theme, self.state, self.notification_theme
-        )
-        self.notifications_theme_menu = t.notifications_theme_menu(
-            theme, theme, self.state, self.notification_theme
-        )
+        self.notifications_menu = t.notifications_menu(theme, theme)
+        self.notifications_theme_menu = t.notifications_theme_menu(theme, theme)
         self.settings_menu = t.settings_menu(theme, theme)
 
     def theme_manager(self):
@@ -266,6 +279,7 @@ class ProxyChecker:
             "3": "blackwhite",
             "4": "purple",
             "5": "water",
+            "6": "pinkneon",
         }
 
         self.clear()
@@ -277,13 +291,13 @@ class ProxyChecker:
             theme = getattr(t, chosen_theme)
             config_handler.set("Theme", chosen_theme)
             self.load_theme(theme)
-        elif aws == "6":
+        elif aws == "7":
             self.main()
         else:
             print(f'{Style.BRIGHT} {Fore.LIGHTRED_EX}"{aws}" Is not a valid option...')
             input()
             self.theme_manager()
-        self.main()
+        self.theme_manager()
 
     def notifications_theme_manager(self):
         theme_options = {
@@ -351,7 +365,8 @@ class ProxyChecker:
         settings_menu_options = {
             "1": self.theme_manager,
             "2": self.notifications_menu_manager,
-            "3": self.main,
+            "3": lambda: self.worker_input(True),
+            "4": self.main,
         }
 
         print(self.settings_menu)
@@ -611,11 +626,13 @@ if __name__ == "__main__":
         "cyan": t.cyan,
         "blackwhite": t.blackwhite,
         "water": t.water,
+        "pinkneon": t.pinkneon,
     }
     THEME = theme_mapping.get(theme, t.fire)
     STATE = config_handler.get("Notifications")
     VERSION = config_handler.get("Version")
     NOTIFICATION_THEME = config_handler.get("Notifications_theme")
+    DEFAULT_WORKERS = config_handler.get("Workers")  # find the best number for your cpu
     proxy_checker = ProxyChecker(
         PROXY_FILE,
         WORKING_HTTP,

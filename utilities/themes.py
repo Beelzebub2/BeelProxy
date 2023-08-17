@@ -32,6 +32,9 @@ class JSONConfigHandler:
 
 config_handler = JSONConfigHandler("config.json")
 VERSION = config_handler.get("Version")
+THEME = config_handler.get("Theme")
+NOTIFICATIONS = config_handler.get("Notifications")
+NOTIFICATIONS_THEME = config_handler.get("Notifications_theme")
 
 
 def blackwhite(text):
@@ -43,9 +46,9 @@ def blackwhite(text):
     for line in text.splitlines():
         faded += f"\033[38;2;{red};{green};{blue}m{line}\033[0m\n"
         if not red == 255 and not green == 255 and not blue == 255:
-            red += 20
-            green += 20
-            blue += 20
+            red += 40
+            green += 40
+            blue += 40
             if red > 255 and green > 255 and blue > 255:
                 red = 255
                 green = 255
@@ -73,7 +76,7 @@ def purple(text):
     for line in text.splitlines():
         fade += f"\033[38;2;{red};0;180m{line}\033[0m\n"
         if not red == 0:
-            red -= 20
+            red -= 15
             if red < 0:
                 red = 0
     return fade
@@ -82,11 +85,11 @@ def purple(text):
 def water(text):
     os.system("")
     fade = ""
-    green = 10
+    green = 30
     for line in text.splitlines():
         fade += f"\033[38;2;0;{green};255m{line}\033[0m\n"
         if not green == 255:
-            green += 15
+            green += 40
             if green > 255:
                 green = 255
     return fade
@@ -102,6 +105,19 @@ def fire(text):
             green -= 25
             if green < 0:
                 green = 0
+    return fade
+
+
+def pinkneon(text):
+    os.system("")
+    fade = ""
+    blue = 255
+    for line in text.splitlines():
+        fade += f"\033[38;2;255;0;{blue}m{line}\033[0m\n"
+        if not blue == 0:
+            blue -= 20
+            if blue < 0:
+                blue = 0
     return fade
 
 
@@ -175,11 +191,12 @@ def theme_menu(type1, type2):
 """
         )
         + type2(
-            """  
+            f"""                                                                                         Current Theme: {THEME.capitalize()}
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-[1] Cyan                                        | [4] Purple
-[2] Fire                                        | [5] Water
-[3] Blackwhite                                  | [6] Exit
+[1] Cyan                                        | [5] Water
+[2] Fire                                        | [6] pink neon
+[3] Blackwhite                                  | [7] Exit
+[4] Purple
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────"""
         )
     )
@@ -207,14 +224,14 @@ def settings_menu(type1, type2):
         + type2(
             """  
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-[1] Theme                                       | [3] Exit
-[2] Sound Notifications                                                           
+[1] Theme                                       | [3] Default workers
+[2] Sound Notifications                         | [4] Exit                                  
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────"""
         )
     )
 
 
-def notifications_menu(type1, type2, state, theme):
+def notifications_menu(type1, type2):
     return (
         type1(
             f"""
@@ -235,7 +252,7 @@ def notifications_menu(type1, type2, state, theme):
 """
         )
         + type2(
-            f"""                                                                                         State: {state} Theme: {theme}
+            f"""                                                                                         State: {NOTIFICATIONS} Theme: {NOTIFICATIONS_THEME.capitalize()}
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 [1] Notifications theme                           | [3] Exit
 [2] Turn ON/OFF                                                          
@@ -244,7 +261,7 @@ def notifications_menu(type1, type2, state, theme):
     )
 
 
-def notifications_theme_menu(type1, type2, state, theme):
+def notifications_theme_menu(type1, type2):
     return (
         type1(
             f"""
@@ -265,7 +282,7 @@ def notifications_theme_menu(type1, type2, state, theme):
 """
         )
         + type2(
-            f"""                                                                                       State: {state} Theme: {theme}
+            f"""                                                                                       State: {NOTIFICATIONS} Theme: {NOTIFICATIONS_THEME.capitalize()}
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 [1] Big-sur                           | [5] Pokemon
 [2] Chime                             | [6] Sonic

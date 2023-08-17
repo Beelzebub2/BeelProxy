@@ -45,6 +45,10 @@ v1.4 17/08/23
 +   Fixed internet error after socks proxy check
 +   Added option to remove duplicate lines from default ouput files and default proxy list
 +   Added progress bar to remove duplicates function
++   Added current theme display
++   Added change workers default, to settings
++   Added new theme
+
 
 v1.3 17/08/23
 
