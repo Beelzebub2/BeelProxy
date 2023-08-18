@@ -69,8 +69,10 @@ class ProxyChecker:
         noti_theme,
     ):
         if u.search_for_updates():
-            os.startfile("start.bat")
-            sys.exit()
+            try:
+                os.system("start.bat")
+            except KeyboardInterrupt:
+                sys.exit()
 
         self.proxy_file = proxy_file
         self.WORKING_HTTP = WORKING_HTTP
