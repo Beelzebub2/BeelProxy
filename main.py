@@ -1,4 +1,6 @@
+import ctypes
 import os
+import signal
 import sys
 import shutil
 import socket
@@ -22,7 +24,7 @@ import utilities.scrapper as s
 
 # Constant Variables
 CONFIG_FILE = "config.json"
-PROXY_FILE = "proxy_list.txt"
+PROXY_FILE = "proxies.txt"
 WORKING_HTTP = "HTTP-HTTPS.txt"
 WORKING_SOCKS4 = "SOCKS4.txt"
 WORKING_SOCKS5 = "SOCKS5.txt"
@@ -207,6 +209,18 @@ class ProxyChecker:
         current_time = time.localtime()
         timestamp = time.strftime("%H:%M:%S", current_time)
         return timestamp
+
+    def handle_keyboard_interrupt(self, signum, frame):
+        if hasattr(self, "executor_all"):
+            self.executor_all.shutdown(wait=False, cancel_futures=True)
+        if hasattr(self, "executor_start"):
+            self.executor_start.shutdown(wait=False, cancel_futures=True)
+        print(
+            f"\n{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} {Style.BRIGHT + Fore.LIGHTBLUE_EX}KeyboardInterrupt detected. Exiting gracefully.{Fore.RESET}"
+        )
+        if self.state == "ON":
+            chime.info(sync=True)
+        sys.exit(0)
 
     def internet_access(self):
         try:
@@ -477,10 +491,12 @@ class ProxyChecker:
         self.worker_input()
         self.read_proxy_file()
         start_time = time.time()
-        with ThreadPoolExecutor(3, thread_name_prefix=f"Check_all") as executor:
-            executor.submit(self.start, self.check_http)
-            executor.submit(self.start, self.check_socks4)
-            executor.submit(self.start, self.check_socks5)
+        with ThreadPoolExecutor(
+            4, thread_name_prefix=f"Check_all"
+        ) as self.executor_all:
+            self.executor_all.submit(self.start, self.check_http)
+            self.executor_all.submit(self.start, self.check_socks4)
+            self.executor_all.submit(self.start, self.check_socks5)
         end_time = time.time()
         self.clear()
         print(self.info_menu)
@@ -498,111 +514,90 @@ class ProxyChecker:
     def start(self, mode):
         with ThreadPoolExecutor(
             max_workers=self.workers, thread_name_prefix=f"{str(mode.__name__)}"
-        ) as executor:
-            futures = [executor.submit(mode, proxy) for proxy in self.proxy_list]
-            try:
-                last_progress_time = time.time()
-                for i, (proxy, future) in enumerate(
-                    zip(self.proxy_list, futures), start=1
-                ):
-                    is_working = future.result()
+        ) as self.executor_start:
+            futures = [
+                self.executor_start.submit(mode, proxy) for proxy in self.proxy_list
+            ]
+            last_progress_time = time.time()
+            for i, (proxy, future) in enumerate(zip(self.proxy_list, futures), start=1):
+                is_working = future.result()
 
-                    if is_working:
-                        if mode == self.check_http:
-                            self.save_to_file(proxy, self.WORKING_HTTP)
-                        elif mode == self.check_socks4:
-                            self.save_to_file(proxy, self.WORKING_SOCKS4)
-                        elif mode == self.check_socks5:
-                            self.save_to_file(proxy, self.WORKING_SOCKS5)
-                    current_time = time.time()
+                if is_working:
+                    if mode == self.check_http:
+                        self.save_to_file(proxy, self.WORKING_HTTP)
+                    elif mode == self.check_socks4:
+                        self.save_to_file(proxy, self.WORKING_SOCKS4)
+                    elif mode == self.check_socks5:
+                        self.save_to_file(proxy, self.WORKING_SOCKS5)
+                current_time = time.time()
 
-                    if current_time - last_progress_time >= SHOW_PROGRESS:
-                        last_progress_time = current_time
-                        progress_mode_mapping = {
-                            self.check_http: (
-                                self.working_count,
-                                "HTTP/HTTPS",
-                                self.failed_count,
-                            ),
-                            self.check_socks4: (
-                                self.socks4_working_count,
-                                "SOCKS4",
-                                self.socks4_failed_count,
-                            ),
-                            self.check_socks5: (
-                                self.socks5_working_count,
-                                "SOCKS5",
-                                self.socks5_failed_count,
-                            ),
-                        }
-                        (
-                            self.working_proxies,
-                            Current_protocol,
-                            Current_failed,
-                        ) = progress_mode_mapping.get(mode, self.working_count)
-                        progress_message = (
-                            f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} "
-                            f"{Fore.LIGHTGREEN_EX + Style.BRIGHT}[PROGRESS]{Fore.LIGHTWHITE_EX + Style.BRIGHT} Protocol: {Current_protocol}"
-                            f"{Fore.LIGHTCYAN_EX} Processed {round(i / len(self.proxy_list) * 100, 2)}% of proxies - "
-                            f"{Fore.GREEN}Working proxies: {self.working_proxies:,} {Fore.RED}Failed proxies: {Current_failed:,}"
-                        )
-                        print(" " * self.console_width, end="\r")
-                        print(
-                            progress_message,
-                            end="\r",
-                            flush=True,
-                        )
-
-            except KeyboardInterrupt:
-                executor.shutdown(wait=False, cancel_futures=True)
-                if self.state == "ON":
-                    chime.info()
-                print(
-                    f"\n\n{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} {Style.BRIGHT + Fore.LIGHTBLUE_EX}KeyboardInterrupt detected. Exiting gracefully.{Fore.RESET}"
-                )
-                sys.exit()
+                if current_time - last_progress_time >= SHOW_PROGRESS:
+                    last_progress_time = current_time
+                    progress_mode_mapping = {
+                        self.check_http: (
+                            self.working_count,
+                            "HTTP/HTTPS",
+                            self.failed_count,
+                        ),
+                        self.check_socks4: (
+                            self.socks4_working_count,
+                            "SOCKS4",
+                            self.socks4_failed_count,
+                        ),
+                        self.check_socks5: (
+                            self.socks5_working_count,
+                            "SOCKS5",
+                            self.socks5_failed_count,
+                        ),
+                    }
+                    (
+                        self.working_proxies,
+                        Current_protocol,
+                        Current_failed,
+                    ) = progress_mode_mapping.get(mode, self.working_count)
+                    progress_message = (
+                        f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} "
+                        f"{Fore.LIGHTGREEN_EX + Style.BRIGHT}[PROGRESS]{Fore.LIGHTWHITE_EX + Style.BRIGHT} Protocol: {Current_protocol}"
+                        f"{Fore.LIGHTCYAN_EX} Processed {round(i / len(self.proxy_list) * 100, 2)}% of proxies - "
+                        f"{Fore.GREEN}Working proxies: {self.working_proxies:,} {Fore.RED}Failed proxies: {Current_failed:,}"
+                    )
+                    print(" " * self.console_width, end="\r")
+                    print(
+                        progress_message,
+                        end="\r",
+                        flush=True,
+                    )
 
     def read_proxy_file(self):
         with open(self.proxy_file, "r") as file:
             self.proxy_list = file.read().splitlines()
 
     def main(self):
-        try:
+        self.clear()
+        self.read_proxy_file()
+        self.working_count = 0
+        self.failed_count = 0
+        self.socks4_working_count = 0
+        self.socks5_working_count = 0
+        self.socks4_failed_count = 0
+        self.socks5_failed_count = 0
+        self.duplicate_stats = []
+        self.console_width = shutil.get_terminal_size().columns
+        internet_access = self.internet_access()
+        if not internet_access:
             self.clear()
-            self.read_proxy_file()
-            self.working_count = 0
-            self.failed_count = 0
-            self.socks4_working_count = 0
-            self.socks5_working_count = 0
-            self.socks4_failed_count = 0
-            self.socks5_failed_count = 0
-            self.duplicate_stats = []
-            self.console_width = shutil.get_terminal_size().columns
-            internet_access = self.internet_access()
-            if not internet_access:
-                self.clear()
-                if self.state == "ON":
-                    chime.error()
-                print(self.info_menu)
-                input(
-                    f"{Style.BRIGHT}{Fore.RED}[ERROR] You need internet access or a better network connection"
-                )
-                self.main()
-                return
-
-            print(self.menu)
-            aws = input(
-                f"{Fore.GREEN}[{Fore.CYAN}>>>{Fore.GREEN}] {Fore.RESET}Choice: "
-            )
-            self.handle_menu_choice(aws)
-
-        except KeyboardInterrupt:
-            print(
-                f"\n{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} {Style.BRIGHT + Fore.LIGHTBLUE_EX}KeyboardInterrupt detected. Exiting gracefully.{Fore.RESET}"
-            )
             if self.state == "ON":
-                chime.info(sync=True)
-            sys.exit(0)
+                chime.error()
+            print(self.info_menu)
+            input(
+                f"{Style.BRIGHT}{Fore.RED}[ERROR] You need internet access or a better network connection"
+            )
+            self.main()
+            return
+
+        print(self.menu)
+        aws = input(f"{Fore.GREEN}[{Fore.CYAN}>>>{Fore.GREEN}] {Fore.RESET}Choice: ")
+        self.handle_menu_choice(aws)
 
     def handle_menu_choice(self, choice):
         menu_actions = {
@@ -686,4 +681,5 @@ if __name__ == "__main__":
         STATE,
         NOTIFICATION_THEME,
     )
+    signal.signal(signal.SIGINT, proxy_checker.handle_keyboard_interrupt)
     proxy_checker.main()

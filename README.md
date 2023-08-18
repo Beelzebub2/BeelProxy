@@ -46,6 +46,8 @@ v1.5 18/08/23
 +   Improved number representations
 +   Fixed not detecting proxy file changes after startup
 +   Made remove duplicates run automatically after proxy scrape/check
++   Changed the way script handles keyboard interrupts
++   Made the script print menu covers according to console width
 
 
 v1.4 17/08/23

@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 from colorama import Style
 
 
@@ -35,6 +36,7 @@ VERSION = config_handler.get("Version")
 THEME = config_handler.get("Theme")
 NOTIFICATIONS = config_handler.get("Notifications")
 NOTIFICATIONS_THEME = config_handler.get("Notifications_theme")
+LINE = "─" * shutil.get_terminal_size().columns
 
 
 def blackwhite(text):
@@ -140,13 +142,13 @@ def menu_theme(type1, type2):
 """
         )
         + type2(
-            """  
-────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+            f"""  
+{LINE}
 [1] HTTP / HTTPS                                | [5] Remove duplicates
 [2] SOCKS4                                      | [6] Scrape proxies
 [3] SOCKS5                                      | [7] Settings 
 [4] Check All
-────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────"""
+{LINE}"""
         )
     )
 
@@ -191,13 +193,14 @@ def theme_menu(type1, type2):
 """
         )
         + type2(
-            f"""                                                                                         Current Theme: {THEME.capitalize()}
-────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+            f"""
+Current Theme: {THEME.capitalize()}
+{LINE}
 [1] Cyan                                        | [5] Water
 [2] Fire                                        | [6] pink neon
 [3] Blackwhite                                  | [7] Exit
 [4] Purple
-────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────"""
+{LINE}"""
         )
     )
 
@@ -222,11 +225,12 @@ def settings_menu(type1, type2):
 """
         )
         + type2(
-            """  
-────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+            f"""  
+{LINE}
 [1] Theme                                       | [3] Default workers
-[2] Sound Notifications                         | [4] Exit                                  
-────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────"""
+[2] Sound Notifications                         | [4] Exit     
+{LINE}                             
+"""
         )
     )
 
@@ -252,11 +256,12 @@ def notifications_menu(type1, type2):
 """
         )
         + type2(
-            f"""                                                                                         State: {NOTIFICATIONS} Theme: {NOTIFICATIONS_THEME.capitalize()}
-────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+            f"""
+State: {NOTIFICATIONS} Theme: {NOTIFICATIONS_THEME.capitalize()}
+{LINE}
 [1] Notifications theme                           | [3] Exit
 [2] Turn ON/OFF                                                          
-────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────"""
+{LINE}"""
         )
     )
 
@@ -282,13 +287,14 @@ def notifications_theme_menu(type1, type2):
 """
         )
         + type2(
-            f"""                                                                                       State: {NOTIFICATIONS} Theme: {NOTIFICATIONS_THEME.capitalize()}
-────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+            f"""
+State: {NOTIFICATIONS} Theme: {NOTIFICATIONS_THEME.capitalize()}
+{LINE}
 [1] Big-sur                           | [5] Pokemon
 [2] Chime                             | [6] Sonic
 [3] Mario                             | [7] Zelda
 [4] Material                          | [8] Exit 
-────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────"""
+{LINE}"""
         )
     )
 
