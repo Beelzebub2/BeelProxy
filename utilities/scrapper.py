@@ -93,9 +93,6 @@ def proxy_scrape():
                 f.write(f"{proxy}\n")
     execution_time = time.time() - startTime
     print(
-        f"{Fore.GREEN}Done! Scraped{Fore.MAGENTA}{len(proxies): >5}{Fore.GREEN} in total => {Fore.RED}proxies.txt{Fore.RESET} in {round(execution_time, 2)}ms"
+        f"{Fore.GREEN}Done! Scraped {Fore.MAGENTA}{len(proxies):,}{Fore.GREEN} in total => {Fore.RED}proxies.txt{Fore.RESET} in {round(execution_time, 2)}ms"
     )
     input("Go back to menu...")
-
-
-# proxy_scrape()

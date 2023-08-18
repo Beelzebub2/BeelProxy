@@ -27,6 +27,7 @@ WORKING_HTTP = "HTTP-HTTPS.txt"
 WORKING_SOCKS4 = "SOCKS4.txt"
 WORKING_SOCKS5 = "SOCKS5.txt"
 SHOW_PROGRESS = 5  # time (seconds) between each progress update (not precise)
+DEFAULT_FILES = [WORKING_HTTP, WORKING_SOCKS4, WORKING_SOCKS5, PROXY_FILE]
 
 
 class JSONConfigHandler:
@@ -106,8 +107,8 @@ class ProxyChecker:
         else:  # Unix-like systems
             os.system("echo -ne '\033]0;" + title + "\007'")
 
-    def remove_duplicates(self):
-        def remove_duplicates_from_file(file_path, default=False):
+    def remove_duplicates(self, file=None):
+        def remove_duplicates_from_file(file_path, default=False, console_called=None):
             start_time = time.time()
             lines_seen = set()
             total_duplicates_removed = 0
@@ -146,6 +147,8 @@ class ProxyChecker:
             elapsed_time = end_time - start_time
 
             timestamp = self.get_timestamp()
+            if console_called:
+                return
             if not default:
                 if self.state == "ON":
                     self.play_chime()
@@ -162,7 +165,13 @@ class ProxyChecker:
                     f"{Fore.LIGHTGREEN_EX + Style.BRIGHT}[FINISHED] {Fore.LIGHTWHITE_EX}Removed {total_duplicates_removed:,} duplicate lines from {file_path} in {elapsed_time:.2f} seconds."
                 )
 
-        default_files = [WORKING_HTTP, WORKING_SOCKS4, WORKING_SOCKS5, PROXY_FILE]
+        if isinstance(file, list):
+            for f in file:
+                remove_duplicates_from_file(f, console_called=True)
+            return
+        elif file:
+            remove_duplicates_from_file(file, console_called=True)
+            return
 
         input_file = input(
             f"File name.txt or File path {Fore.BLUE}[{Fore.LIGHTMAGENTA_EX}For output files cleanup click enter{Fore.BLUE}]: "
@@ -178,7 +187,7 @@ class ProxyChecker:
         if input_file:
             remove_duplicates_from_file(input_file)
         else:
-            for default_file in default_files:
+            for default_file in DEFAULT_FILES:
                 remove_duplicates_from_file(default_file, True)
             if self.state == "ON":
                 self.play_chime()
@@ -267,7 +276,7 @@ class ProxyChecker:
         if self.state == "ON":
             chime.info()
         print(
-            f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} {Style.BRIGHT}{Fore.LIGHTGREEN_EX}[START]{Fore.LIGHTWHITE_EX} Checking {len(self.proxy_list):,} proxies{Fore.RESET} {Fore.LIGHTWHITE_EX} {Style.BRIGHT}With {self.workers:,} workers",
+            f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} {Style.BRIGHT}{Fore.LIGHTGREEN_EX}[START]{Fore.LIGHTWHITE_EX} Checking {len(self.proxy_list):,} proxies{Fore.RESET}{Fore.LIGHTWHITE_EX} {Style.BRIGHT}With {self.workers:,} workers",
             end="\r",
         )
 
@@ -466,8 +475,9 @@ class ProxyChecker:
 
     def check_all(self):
         self.worker_input()
+        self.read_proxy_file()
         start_time = time.time()
-        with ThreadPoolExecutor(3) as executor:
+        with ThreadPoolExecutor(3, thread_name_prefix=f"Check_all") as executor:
             executor.submit(self.start, self.check_http)
             executor.submit(self.start, self.check_socks4)
             executor.submit(self.start, self.check_socks5)
@@ -486,7 +496,9 @@ class ProxyChecker:
         self.main()
 
     def start(self, mode):
-        with ThreadPoolExecutor(max_workers=self.workers) as executor:
+        with ThreadPoolExecutor(
+            max_workers=self.workers, thread_name_prefix=f"{str(mode.__name__)}"
+        ) as executor:
             futures = [executor.submit(mode, proxy) for proxy in self.proxy_list]
             try:
                 last_progress_time = time.time()
@@ -542,8 +554,7 @@ class ProxyChecker:
                         )
 
             except KeyboardInterrupt:
-                for future in futures:
-                    future.cancel()
+                executor.shutdown(wait=False, cancel_futures=True)
                 if self.state == "ON":
                     chime.info()
                 print(
@@ -599,20 +610,30 @@ class ProxyChecker:
                 self.worker_input,
                 self.read_proxy_file,
                 lambda: self.start(self.check_http),
+                lambda: self.remove_duplicates(WORKING_HTTP),
             ),
             "2": (
                 self.worker_input,
                 self.read_proxy_file,
                 lambda: self.start(self.check_socks4),
+                lambda: self.remove_duplicates(WORKING_SOCKS4),
             ),
             "3": (
                 self.worker_input,
                 self.read_proxy_file,
                 lambda: self.start(self.check_socks5),
+                lambda: self.remove_duplicates(WORKING_SOCKS5),
             ),
-            "4": (self.check_all, self.read_proxy_file),
+            "4": (
+                self.check_all,
+                lambda: self.remove_duplicates(DEFAULT_FILES),
+            ),
             "5": (self.remove_duplicates, self.main),
-            "6": (s.proxy_scrape, self.main),
+            "6": (
+                s.proxy_scrape,
+                lambda: self.remove_duplicates(self.proxy_file),
+                self.main,
+            ),
             "7": (self.clear, self.settings_menu_manager),
         }
 

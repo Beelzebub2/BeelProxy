@@ -43,6 +43,8 @@ v1.5 18/08/23
 +   Fixed autoupdater bug
 +   Fixed progress bar width by reading console total width
 +   Improved number representations
++   Fixed not detecting proxy file changes after startup
++   Made remove duplicates run automatically after proxy scrape/check
 
 
 v1.4 17/08/23
