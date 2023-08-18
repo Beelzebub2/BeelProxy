@@ -69,8 +69,14 @@ class ProxyChecker:
         noti_theme,
     ):
         if u.search_for_updates():
-            python = sys.executable
-            os.execl(python, python, *sys.argv)
+            try:
+                python = sys.executable
+                os.execl(python, python, *sys.argv)
+            except KeyboardInterrupt:
+                print(
+                    f"\n\n{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} {Style.BRIGHT + Fore.LIGHTBLUE_EX}KeyboardInterrupt detected. Exiting gracefully.{Fore.RESET}"
+                )
+                sys.exit()
 
         self.proxy_file = proxy_file
         self.WORKING_HTTP = WORKING_HTTP
