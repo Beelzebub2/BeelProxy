@@ -2,6 +2,6 @@
     "Theme": "pinkneon",
     "Notifications": "ON",
     "Notifications_theme": "material",
-    "Version": "v1.4",
-    "Workers": 100
+    "Version": "v1.5",
+    "Workers": 50
 }

@@ -68,7 +68,10 @@ class ProxyChecker:
         state,
         noti_theme,
     ):
-        u.search_for_updates()
+        if u.search_for_updates():
+            python = sys.executable
+            os.execl(python, python, *sys.argv)
+
         self.proxy_file = proxy_file
         self.WORKING_HTTP = WORKING_HTTP
         self.WORKING_SOCKS4 = WORKING_SOCKS4

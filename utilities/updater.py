@@ -87,9 +87,9 @@ def search_for_updates():
                 clear()
                 print(t.updated(theme))
                 set_console_title(f"Update Successfully Finished!")
+                print("Attempting to restart...")
                 time.sleep(2)
-                os.system("start.bat")
-                os._exit(0)
+                return True
     except KeyboardInterrupt:
         print(
             f"\n{Style.BRIGHT + Fore.LIGHTBLUE_EX}KeyboardInterrupt detected. Exiting gracefully.{Fore.RESET}"

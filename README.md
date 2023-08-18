@@ -1,4 +1,4 @@
-![Static Badge](https://img.shields.io/badge/Version-v1.4-8ebff1?style=for-the-badge&logo=v)
+![Static Badge](https://img.shields.io/badge/Version-v1.5-8ebff1?style=for-the-badge&logo=v)
 ![Static Badge](https://img.shields.io/badge/Language-python-3776ab?style=for-the-badge&logo=python)
 ![Static Badge](https://img.shields.io/badge/Made%20by-Ricardo%20Martins-851ebc?style=for-the-badge)
 # BeelProxy  
@@ -38,6 +38,12 @@
 
 ```diff
 
+v1.5 18/08/23
+
++   Fixed autoupdater bug
++   Fixed progress bar width by reading console total width
++   Improved number representations
+
 
 v1.4 17/08/23
 
@@ -48,8 +54,6 @@ v1.4 17/08/23
 +   Added current theme display
 +   Added change workers default, to settings
 +   Added new theme
-+   Fixed progress bar width by reading console total width
-+   Improved number representations
 
 
 v1.3 17/08/23
