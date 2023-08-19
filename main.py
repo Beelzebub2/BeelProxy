@@ -1,4 +1,3 @@
-import ctypes
 import os
 import signal
 import sys
@@ -6,7 +5,6 @@ import shutil
 import socket
 import threading
 import time
-import json
 import requests
 import socks
 import importlib
@@ -30,33 +28,6 @@ WORKING_SOCKS4 = "SOCKS4.txt"
 WORKING_SOCKS5 = "SOCKS5.txt"
 SHOW_PROGRESS = 5  # time (seconds) between each progress update (not precise)
 DEFAULT_FILES = [WORKING_HTTP, WORKING_SOCKS4, WORKING_SOCKS5, PROXY_FILE]
-
-
-class JSONConfigHandler:
-    def __init__(self, config_file_path):
-        self.config_file_path = config_file_path
-        self.config = self.load_config()
-
-    def load_config(self):
-        if os.path.exists(self.config_file_path):
-            with open(self.config_file_path, "r") as file:
-                try:
-                    config = json.load(file)
-                    return config
-                except json.JSONDecodeError:
-                    print("Error: Invalid JSON format in the config file.")
-        return {}
-
-    def get(self, key, default=None):
-        return self.config.get(key, default)
-
-    def set(self, key, value):
-        self.config[key] = value
-        self.save_config()
-
-    def save_config(self):
-        with open(self.config_file_path, "w") as file:
-            json.dump(self.config, file, indent=4)
 
 
 class ProxyChecker:
@@ -258,7 +229,7 @@ class ProxyChecker:
         if settings:
             try:
                 workers = input(
-                    f"{Style.BRIGHT}{Fore.LIGHTCYAN_EX}[INFO]{Fore.RESET} {Fore.LIGHTWHITE_EX}New workers default? Current: {self.workers}. {Style.BRIGHT + Fore.LIGHTYELLOW_EX}In [check all] function workers will be 3 times this\n"
+                    f"{Style.BRIGHT}{Fore.LIGHTCYAN_EX}[INFO]{Fore.RESET} {Fore.LIGHTWHITE_EX}New workers default? Current: {self.workers}. {Style.BRIGHT + Fore.LIGHTYELLOW_EX}\n"
                 )
                 if workers:
                     config_handler.set("Workers", int(workers))
@@ -276,7 +247,7 @@ class ProxyChecker:
             return
         try:
             workers = input(
-                f"{Style.BRIGHT}{Fore.LIGHTCYAN_EX}[INFO]{Fore.RESET} {Fore.LIGHTWHITE_EX}How many workers do you want? (try 100 - 1000) default: {self.workers}. {Style.BRIGHT + Fore.LIGHTYELLOW_EX}In [check all] function workers will be 3 times this\n"
+                f"{Style.BRIGHT}{Fore.LIGHTCYAN_EX}[INFO]{Fore.RESET} {Fore.LIGHTWHITE_EX}How many workers do you want? (try 100 - 1000) default: {self.workers}. {Style.BRIGHT + Fore.LIGHTYELLOW_EX}\n"
             )
             if workers:
                 self.workers = int(workers)
@@ -492,7 +463,7 @@ class ProxyChecker:
         self.read_proxy_file()
         start_time = time.time()
         with ThreadPoolExecutor(
-            4, thread_name_prefix=f"Check_all"
+            3, thread_name_prefix=f"Check_all"
         ) as self.executor_all:
             self.executor_all.submit(self.start, self.check_http)
             self.executor_all.submit(self.start, self.check_socks4)
@@ -513,7 +484,7 @@ class ProxyChecker:
 
     def start(self, mode):
         with ThreadPoolExecutor(
-            max_workers=self.workers, thread_name_prefix=f"{str(mode.__name__)}"
+            max_workers=self.workers, thread_name_prefix=f"Start_Method"
         ) as self.executor_start:
             futures = [
                 self.executor_start.submit(mode, proxy) for proxy in self.proxy_list
@@ -656,7 +627,7 @@ class ProxyChecker:
 
 
 if __name__ == "__main__":
-    config_handler = JSONConfigHandler(CONFIG_FILE)
+    config_handler = t.JSONConfigHandler(CONFIG_FILE)
     theme = config_handler.get("Theme")
     theme_mapping = {
         "fire": t.fire,
