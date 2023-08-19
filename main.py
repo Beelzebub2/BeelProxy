@@ -4,6 +4,7 @@ import sys
 import shutil
 import socket
 import threading
+import asyncio
 import time
 import requests
 import socks
@@ -23,6 +24,7 @@ import utilities.scrapper as s
 # Constant Variables
 CONFIG_FILE = "config.json"
 PROXY_FILE = "proxies.txt"
+SCRAPPED_FILE = "scrapped.txt"
 WORKING_HTTP = "HTTP-HTTPS.txt"
 WORKING_SOCKS4 = "SOCKS4.txt"
 WORKING_SOCKS5 = "SOCKS5.txt"
@@ -540,8 +542,14 @@ class ProxyChecker:
                     )
 
     def read_proxy_file(self):
-        with open(self.proxy_file, "r") as file:
-            self.proxy_list = file.read().splitlines()
+        try:
+            with open(self.proxy_file, "r") as file:
+                self.proxy_list = file.read().splitlines()
+        except FileNotFoundError:
+            if self.state == "ON":
+                chime.error()
+            print(f"{Fore.LIGHTRED_EX}{PROXY_FILE} Not found...")
+            sys.exit()
 
     def main(self):
         self.clear()
@@ -596,7 +604,10 @@ class ProxyChecker:
             ),
             "5": (self.remove_duplicates, self.main),
             "6": (
-                s.proxy_scrape,
+                lambda: asyncio.run(
+                    s.scrape_proxies(SCRAPPED_FILE, self.play_chime, self.state)
+                ),
+                (lambda: self.stop_event.set()) if self.state == "ON" else None,
                 lambda: self.remove_duplicates(self.proxy_file),
                 self.main,
             ),
@@ -618,7 +629,7 @@ class ProxyChecker:
         self.clear()
         print(self.info_menu)
         print(
-            f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} {Fore.LIGHTGREEN_EX}[FINISHED] {Fore.LIGHTWHITE_EX} Total proxies: {len(self.proxy_list):,} {Fore.GREEN}Total Working proxies: { self.working_proxies:,} {Fore.RED}Failed proxies: {self.failed_count:,}{Fore.RESET}"
+            f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ self.get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET} {Fore.LIGHTGREEN_EX}[FINISHED] {Fore.LIGHTWHITE_EX} Total proxies: {len(self.proxy_list):,} {Fore.GREEN}Total Working proxies: { 0 if not hasattr(self, 'working_proxies') else self.working_proxies:,} {Fore.RED}Failed proxies: {self.failed_count:,}{Fore.RESET}"
         )
         self.play_chime()
         input(f"\n{Fore.LIGHTWHITE_EX + Style.BRIGHT}Go back to menu...")

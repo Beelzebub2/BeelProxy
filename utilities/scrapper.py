@@ -1,98 +1,79 @@
-import requests
-import re
-import threading
-import random
+import os
+import asyncio
 import time
-from colorama import Fore
+from colorama import Fore, Style
+from tqdm import tqdm
+import httpx
+import re
+
+
+import utilities.sources as s
 import utilities.updater as u
 
-PROXIES_FILE = "proxies.txt"
+
+def clear():
+    os.system("clear" if os.name == "posix" else "cls")
 
 
-def proxy_scrape():
-    proxieslog = []
-    u.set_console_title("Scraping proxies")
-    startTime = time.time()
+def get_timestamp():
+    current_time = time.localtime()
+    timestamp = time.strftime("%H:%M:%S", current_time)
+    return timestamp
 
-    def fetchProxies(url, custom_regex):
+
+async def fetchProxies(url, custom_regex, progress_bar):
+    async with httpx.AsyncClient() as client:
+        proxies = []  # List to collect the yielded proxies
         try:
-            proxylist = requests.get(url, timeout=5).text
+            response = await client.get(url, timeout=5)
+            proxylist = response.text
             proxylist = proxylist.replace("null", "")
             custom_regex = custom_regex.replace(
                 "%ip%", r"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"
             )
             custom_regex = custom_regex.replace("%port%", r"(\d{1,5})")
+            proxy_count = 0  # Counter for the proxies collected
             for proxy in re.findall(re.compile(custom_regex), proxylist):
-                proxieslog.append(f"{proxy[0]}:{proxy[1]}")
+                proxies.append(f"{proxy[0]}:{proxy[1]}")
+                proxy_count += 1
+            progress_bar.update(
+                proxy_count
+            )  # Update progress bar with collected proxy count
+            return proxies  # Return the list of collected proxies
         except Exception:
-            pass
+            return []
 
-    proxysources = [
-        ["http://spys.me/proxy.txt", "%ip%:%port% "],
-        [
-            "http://www.httptunnel.ge/ProxyListForFree.aspx",
-            ' target="_new">%ip%:%port%</a>',
-        ],
-        [
-            "https://raw.githubusercontent.com/sunny9577/proxy-scraper/master/proxies.json",
-            '"ip":"%ip%","port":"%port%",',
-        ],
-        [
-            "https://raw.githubusercontent.com/fate0/proxylist/master/proxy.list",
-            '"host": "%ip%".*?"country": "(.*?){2}",.*?"port": %port%',
-        ],
-        [
-            "https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list.txt",
-            "%ip%:%port% (.*?){2}-.-S \\+",
-        ],
-        [
-            "https://raw.githubusercontent.com/opsxcq/proxy-list/master/list.txt",
-            '%ip%", "type": "http", "port": %port%',
-        ],
-        [
-            "https://www.sslproxies.org/",
-            "<tr><td>%ip%<\\/td><td>%port%<\\/td><td>(.*?){2}<\\/td><td class='hm'>.*?<\\/td><td>.*?<\\/td><td class='hm'>.*?<\\/td><td class='hx'>(.*?)<\\/td><td class='hm'>.*?<\\/td><\\/tr>",
-        ],
-        [
-            "https://api.proxyscrape.com/?request=getproxies&proxytype=http&timeout=6000&country=all&ssl=yes&anonymity=all",
-            "%ip%:%port%",
-        ],
-        [
-            "https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/http.txt",
-            "%ip%:%port%",
-        ],
-        [
-            "https://raw.githubusercontent.com/shiftytr/proxy-list/master/proxy.txt",
-            "%ip%:%port%",
-        ],
-        ["https://proxylist.icu/proxy/", "<td>%ip%:%port%</td><td>http<"],
-        ["https://proxylist.icu/proxy/1", "<td>%ip%:%port%</td><td>http<"],
-        ["https://proxylist.icu/proxy/2", "<td>%ip%:%port%</td><td>http<"],
-        ["https://proxylist.icu/proxy/3", "<td>%ip%:%port%</td><td>http<"],
-        ["https://proxylist.icu/proxy/4", "<td>%ip%:%port%</td><td>http<"],
-        ["https://proxylist.icu/proxy/5", "<td>%ip%:%port%</td><td>http<"],
-        ["https://www.hide-my-ip.com/proxylist.shtml", '"i":"%ip%","p":"%port%",'],
-        [
-            "https://raw.githubusercontent.com/scidam/proxy-list/master/proxy.json",
-            '"ip": "%ip%",\n.*?"port": "%port%",',
-        ],
-    ]
-    threads = [
-        threading.Thread(target=fetchProxies, args=(url[0], url[1]))
-        for url in proxysources
-    ]
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join()
+
+async def scrape_proxies(file, play, state):
+    proxieslog = []
+    u.set_console_title("Scraping proxies")
+    startTime = time.time()
+
+    proxy_sources = s.proxysources
+
+    with tqdm(
+        desc=f"{Style.BRIGHT}{Fore.LIGHTBLUE_EX}[{ Fore.LIGHTMAGENTA_EX+ get_timestamp() + Fore.LIGHTBLUE_EX}]{Fore.RESET}{Style.BRIGHT} Scraping Proxies",
+        unit=" proxies",
+        ascii=True,
+        smoothing=0.1,
+        colour="GREEN",
+    ) as pbar:
+        tasks = []
+        for url in proxy_sources:
+            tasks.append(fetchProxies(url[0], url[1], pbar))
+
+        for task in asyncio.as_completed(tasks):
+            proxies = await task
+            proxieslog.extend(proxies)
 
     proxies = list(set(proxieslog))
-    with open(PROXIES_FILE, "w") as f:
+    with open(file, "w") as f:
         for proxy in proxies:
-            for _ in range(random.randint(7, 10)):
-                f.write(f"{proxy}\n")
+            f.write(f"{proxy}\n")
     execution_time = time.time() - startTime
+    repeated = len(proxieslog) - len(proxies)
     print(
-        f"{Fore.GREEN}Done! Scraped {Fore.MAGENTA}{len(proxies):,}{Fore.GREEN} in total => {Fore.RED}proxies.txt{Fore.RESET} in {round(execution_time, 2)}ms"
+        f"{Fore.LIGHTGREEN_EX}Done! Scraped {Fore.LIGHTMAGENTA_EX}{len(proxies):,}{Fore.LIGHTWHITE_EX} |{Fore.LIGHTYELLOW_EX} Removed {Fore.LIGHTRED_EX}{repeated:,}{Fore.RESET}{Fore.YELLOW} Repeated proxies {Fore.LIGHTWHITE_EX}in total => {Fore.BLUE}proxies.txt{Fore.RESET} in {round(execution_time, 2)}s"
     )
-    input("Go back to menu...")
+    play()
+    input("Go back to the menu...")

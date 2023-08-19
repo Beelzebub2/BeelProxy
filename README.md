@@ -1,4 +1,4 @@
-![Static Badge](https://img.shields.io/badge/Version-v1.5-8ebff1?style=for-the-badge&logo=v)
+![Static Badge](https://img.shields.io/badge/Version-v1.6-8ebff1?style=for-the-badge&logo=v)
 ![Static Badge](https://img.shields.io/badge/Language-python-3776ab?style=for-the-badge&logo=python)
 ![Static Badge](https://img.shields.io/badge/Made%20by-Ricardo%20Martins-851ebc?style=for-the-badge)
 # BeelProxy  
@@ -38,6 +38,13 @@
 # Changelog
 
 ```diff
+
+v1.6 19/08/23
+
++   Fixed some minor bugs
++   Added warning when proxy list file not found
++   Improved scrapper apearence and performance
++   Updated requirements
 
 v1.5 18/08/23
 
