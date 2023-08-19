@@ -27,7 +27,7 @@
 #### 5. Output in file named after the proxy protocol
 
 ## Notes
-- **Worker quantity**: On a **6 core** Intel Core i7-8750H 2.20GHz i was able to use 1000. However 5000 was to much for it. I recommend you to try different numbers and see whats the best option.  
+- **Worker quantity**: On a **6 core** Intel Core i7-8750H 2.20GHz i was able to use 3000. However 5000 was to much for it. I recommend you to try different numbers and see whats the best option.  
 - **Keyboard interrupt**: In the check all function keyboard interrupt does not work
 
 
